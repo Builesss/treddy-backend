@@ -1,0 +1,23 @@
+{
+  "name": "treddy-backend",
+  "version": "1.0.0",
+  "description": "TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "treddy": "ts-node src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://ADSO211@dev.azure.com/ADSO211/Treddy/_git/treddy-backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
