@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -13,6 +14,8 @@ app.use(express.json());
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(compression());
+
+app.use('/images', express.static(path.join(__dirname, '../src/public/images')));
 
 app.use('/api/figuras', figurasRoutes);
 
