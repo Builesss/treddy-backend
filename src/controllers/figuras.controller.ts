@@ -1,11 +1,21 @@
 import { Request, Response } from "express";
+import { PrismaClient } from '../generated/prisma';
 
-export const getFiguras = (req: Request, res: Response) => {
-  res.json([
-    { id: 1, nombre: "Oso Meditador", imagenUrl: "http://localhost:4000/images/Oso.png" },
-    { id: 2, nombre: "Erizo", imagenUrl: "http://localhost:4000/images/Erizo.png" },
-    { id: 3, nombre: "Rana", imagenUrl: "http://localhost:4000/images/Sapo.png" },
-    { id: 4, nombre: "Naruto", imagenUrl: "http://localhost:4000/images/Naruto.png" },
-    { id: 5, nombre: "Caballero", imagenUrl: "http://localhost:4000/images/Dark-souls.png" },
-  ]);
+const prisma = new PrismaClient();
+
+export const getFiguras = async (req: Request, res: Response) => {
+  try {
+    const figuras = await prisma.productos.findMany();
+
+    const figurasConUrl = figuras.map((figura: { producto_id: any; nombre: any; imagen: any; }) => ({
+      id: Number(figura.producto_id),
+      nombre: figura.nombre,
+      imagenUrl: `${req.protocol}://${req.get("host")}/images/${figura.imagen}`
+    }));
+
+    res.json(figurasConUrl);
+  } catch (error) {
+    console.error("Error al obtener las figuras:", error);
+    res.status(500).json({ error: "Error al obtener las figuras" });
+  }
 };

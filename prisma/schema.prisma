@@ -121,6 +121,7 @@ model productos {
   estado             String?              @default("activo") @db.VarChar(20)
   created_at         DateTime             @default(now()) @db.Timestamp(6)
   updated_at         DateTime             @default(now()) @db.Timestamp(6)
+  imagen             String?              @db.VarChar(255)
   detallepedido      detallepedido[]
   historialproductos historialproductos[]
   personalizaciones  personalizaciones[]
