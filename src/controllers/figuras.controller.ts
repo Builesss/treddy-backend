@@ -8,8 +8,9 @@ export const getFiguras = async (req: Request, res: Response) => {
     const figuras = await prisma.productos.findMany();
 
     const figurasConUrl = figuras.map((figura) => ({
-      ...figura, 
-      imagenUrl: `${req.protocol}://${req.get("host")}/images/${figura.imagen}`, 
+      ...figura,
+      producto_id: Number(figura.producto_id),
+      imagenUrl: `${req.protocol}://${req.get("host")}/images/${figura.imagen}`,
     }));
 
     res.json(figurasConUrl);
