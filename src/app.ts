@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
+import { setupSwagger } from "./swagger";
 import figurasRoutes from './routes/figuras.routes';
 import authRoutes from "./routes/auth.routes";
 
@@ -16,6 +17,8 @@ app.use(morgan('dev'));
 app.use(compression());
 
 app.use('/images', express.static(path.join(__dirname, '../src/public/images')));
+
+setupSwagger(app);
 
 app.use('/api/figuras', figurasRoutes);
 app.use("/api/auth", authRoutes);
