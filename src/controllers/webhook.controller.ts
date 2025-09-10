@@ -10,13 +10,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const webhookController = async (req: Request, res: Response) => {
   try {
-    const { type, action, data } = req.body;
+    const { type, data } = req.body;
 
     if (type === "payment" && data?.id) {
       const payment = await paymentClient.get({ id: data.id.toString() });
 
       if (payment.status === "approved") {
-        const payerEmail = payment.payer?.email || "soporte@tu-dominio.com";
         const items = payment.additional_info?.items || [];
 
         const total = items.reduce(
