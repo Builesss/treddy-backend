@@ -12,7 +12,7 @@ import redirectRoutes from "./routes/redirect.routes";
 
 const app = express();
 
-app.use(cors({ origin: ['http://localhost:3000', 'https://4fe99f0c07e5.ngrok-free.app']}));
+app.use(cors({ origin: ['http://localhost:3000', 'https://082d5500e4b0.ngrok-free.app']})); 
 app.use(express.json());
 app.use(helmet());
 app.use(morgan('dev'));
