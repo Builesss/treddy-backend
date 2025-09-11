@@ -9,10 +9,11 @@ import { setupSwagger } from "./swagger";
 import figurasRoutes from './routes/figuras.routes';
 import authRoutes from "./routes/auth.routes";
 import redirectRoutes from "./routes/redirect.routes";
+import userRoutes from "./routes/users.routes"
 
 const app = express();
 
-app.use(cors({ origin: ['http://localhost:3000', 'https://082d5500e4b0.ngrok-free.app']})); 
+app.use(cors({ origin: ['http://localhost:3000', 'https://4ac7b7a2a950.ngrok-free.app']})); 
 app.use(express.json());
 app.use(helmet());
 app.use(morgan('dev'));
@@ -25,6 +26,7 @@ setupSwagger(app);
 app.use('/api/figuras', figurasRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/user", userRoutes)
 app.use("/", redirectRoutes);
 
 export default app;
