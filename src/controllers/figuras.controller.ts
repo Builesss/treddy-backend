@@ -11,6 +11,7 @@ export const getFiguras = async (req: Request, res: Response) => {
       ...figura,
       producto_id: Number(figura.producto_id),
       imagenUrl: `${req.protocol}://${req.get("host")}/images/${figura.imagen}`,
+      cantidad: 1,
     }));
 
     res.json(figurasConUrl);
