@@ -46,7 +46,7 @@ export const register = async (req: Request, res: Response): Promise<any> => {
 };
 
 export const login = async (req: Request, res: Response): Promise<any> => {
-  const { email, contrasena } = req.body;
+  const { email, contrasena, recordar } = req.body;
 
   try {
     const user = await prisma.usuarios.findUnique({ where: { email } });
@@ -58,6 +58,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     if (!isMatch) {
       return res.status(400).json({ message: "Contraseña incorrecta" });
     }
+    const expiresIn = recordar ? "7d" : "2h";
 
     const token = jwt.sign(
       {
@@ -66,12 +67,17 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         role: user.tipo_usuario,
       },
       process.env.JWT_SECRET as string,
-      { expiresIn: "2h" }
+      { expiresIn }
     );
 
-    res.json({ message: "Login exitoso", token });
+    res.json({
+      message: "Login exitoso",
+      token,
+      recordar,
+      expiracion: expiresIn,
+    });
   } catch (error) {
+    console.error("Error en login:", error);
     res.status(500).json({ message: "Error en el servidor", error });
-    console.log("JWT_SECRET", process.env.JWT_SECRET);
   }
 };
