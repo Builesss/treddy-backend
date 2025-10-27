@@ -36,6 +36,8 @@ model detallepedido {
   productos          productos          @relation(fields: [producto_id], references: [producto_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_detallepedido_productos")
 
   @@index([pedido_id, producto_id], map: "idx_detallepedido_pedido_producto")
+
+  @@index([pedido_id, producto_id], map: "idx_detallepedido_pedido_producto")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -51,6 +53,8 @@ model envios {
   updated_at      DateTime @default(now()) @db.Timestamp(6)
   usuarios        usuarios @relation(fields: [domiciliario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envios_domiciliarios")
   pedidos         pedidos  @relation(fields: [pedido_id], references: [pedido_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envios_pedidos")
+
+  @@index([pedido_id, domiciliario_id], map: "idx_envios_pedido_domiciliario")
 
   @@index([pedido_id, domiciliario_id], map: "idx_envios_pedido_domiciliario")
 }
@@ -69,6 +73,8 @@ model historialpedidos {
   usuarios     usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historialpedidos_usuarios")
 
   @@index([pedido_id, fecha], map: "idx_historialpedidos_pedido_fecha")
+
+  @@index([pedido_id, fecha], map: "idx_historialpedidos_pedido_fecha")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -84,8 +90,11 @@ model historialproductos {
   accion       String?   @db.VarChar(20)
   usuario_id   BigInt?
   categoria    String?   @db.VarChar(100)
+  categoria    String?   @db.VarChar(100)
   productos    productos @relation(fields: [producto_id], references: [producto_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historialproductos_productos")
   usuarios     usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historialproductos_usuarios")
+
+  @@index([producto_id, fecha], map: "idx_historialproductos_producto_fecha")
 
   @@index([producto_id, fecha], map: "idx_historialproductos_producto_fecha")
 }
@@ -104,6 +113,8 @@ model pedidos {
   envios           envios[]
   historialpedidos historialpedidos[]
   usuarios         usuarios           @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_usuarios")
+
+  @@index([usuario_id, estado], map: "idx_pedido_usuario_estado")
 
   @@index([usuario_id, estado], map: "idx_pedido_usuario_estado")
 }
@@ -152,6 +163,7 @@ model usuarios {
   created_at         DateTime             @default(now()) @db.Timestamp(6)
   updated_at         DateTime             @default(now()) @db.Timestamp(6)
   auditoria          auditoria[]
+  carrito            carrito[]
   envios             envios[]
   historialpedidos   historialpedidos[]
   historialproductos historialproductos[]
