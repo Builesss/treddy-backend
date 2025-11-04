@@ -5,10 +5,14 @@ import { getSignedUrl, gcsKey } from "../lib/gcs";
 const prisma = new PrismaClient();
 
 async function getOrCreateCart(userId?: number, sessionId?: string) {
-  if (!userId && !sessionId) throw new Error("Debes enviar userId o sessionId");
+  if ((!userId || isNaN(userId)) && !sessionId) {
+    throw new Error("Debes enviar userId o sessionId");
+  }
 
   if (userId) {
-    const existing = await prisma.carrito.findUnique({ where: { user_id: userId } });
+    const existing = await prisma.carrito.findUnique({
+      where: { user_id: userId },
+    });
     if (existing) return existing;
 
     if (sessionId) {
@@ -19,7 +23,9 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
 
       if (sessionCart) {
         const merged = await prisma.$transaction(async (tx) => {
-          const userCart = await tx.carrito.create({ data: { user_id: userId } });
+          const userCart = await tx.carrito.create({
+            data: { user_id: userId },
+          });
 
           for (const it of sessionCart.carrito_item) {
             await tx.carrito_item.upsert({
@@ -49,7 +55,9 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
     return prisma.carrito.create({ data: { user_id: userId } });
   }
 
-  const existingBySession = await prisma.carrito.findUnique({ where: { session_id: sessionId! } });
+  const existingBySession = await prisma.carrito.findUnique({
+    where: { session_id: sessionId! },
+  });
   if (existingBySession) return existingBySession;
 
   return prisma.carrito.create({ data: { session_id: sessionId! } });
@@ -92,11 +100,15 @@ export const cartService = {
 
     const itemsConUrl = await Promise.all(
       cart.carrito_item.map(async (it) => {
-        const key = it.productos.imagen_path || gcsKey("images/productos", "default.png");
+        const key =
+          it.productos.imagen_path || gcsKey("images/productos", "default.png");
         const imagenUrl = await getSignedUrl(key);
 
         return {
           ...it,
+          precio_unitario: Number(
+            it.precio_unitario ?? it.productos?.precio_base ?? 0
+          ),
           productos: {
             ...it.productos,
             imagenUrl,
@@ -114,7 +126,12 @@ export const cartService = {
     return { ...cart, carrito_item: itemsConUrl, total: total.toFixed(2) };
   },
 
-  async addItem(userId?: number, sessionId?: string, productoId?: number, cantidad = 1) {
+  async addItem(
+    userId?: number,
+    sessionId?: string,
+    productoId?: number,
+    cantidad = 1
+  ) {
     if (!productoId) throw new Error("productoId es obligatorio");
 
     const cart = await getOrCreateCart(userId, sessionId);
@@ -124,8 +141,10 @@ export const cartService = {
     });
 
     if (!prod) throw new Error("Producto no existe");
-    if (prod.estado && prod.estado !== "activo") throw new Error("Producto no disponible");
-    if (prod.stock != null && prod.stock <= 0) throw new Error("Sin stock disponible");
+    if (prod.estado && prod.estado !== "activo")
+      throw new Error("Producto no disponible");
+    if (prod.stock != null && prod.stock <= 0)
+      throw new Error("Sin stock disponible");
 
     const item = await prisma.carrito_item.upsert({
       where: {
@@ -149,7 +168,12 @@ export const cartService = {
     return item;
   },
 
-  async updateItemQuantity(userId?: number, sessionId?: string, productoId?: number, cantidad?: number) {
+  async updateItemQuantity(
+    userId?: number,
+    sessionId?: string,
+    productoId?: number,
+    cantidad?: number
+  ) {
     if (!productoId) throw new Error("productoId inválido");
     const cart = await getOrCreateCart(userId, sessionId);
 
@@ -191,15 +215,22 @@ export const cartService = {
 
   async clearCart(userId?: number, sessionId?: string) {
     const cart = await getOrCreateCart(userId, sessionId);
-    await prisma.carrito_item.deleteMany({ where: { carrito_id: Number(cart.id) } });
+    await prisma.carrito_item.deleteMany({
+      where: { carrito_id: Number(cart.id) },
+    });
     await touchCartUpdatedAt(Number(cart.id));
     return { ok: true };
   },
 
   async mergeSessionCart(sessionId: string, userId: number) {
     const out = await prisma.$transaction(async (tx) => {
-      let userCart = await tx.carrito.findUnique({ where: { user_id: Number(userId) } });
-      if (!userCart) userCart = await tx.carrito.create({ data: { user_id: Number(userId) } });
+      let userCart = await tx.carrito.findUnique({
+        where: { user_id: Number(userId) },
+      });
+      if (!userCart)
+        userCart = await tx.carrito.create({
+          data: { user_id: Number(userId) },
+        });
 
       const sessionCart = await tx.carrito.findUnique({
         where: { session_id: sessionId },
@@ -227,7 +258,10 @@ export const cartService = {
       }
 
       await tx.carrito.delete({ where: { id: Number(sessionCart.id) } });
-      await tx.carrito.update({ where: { id: Number(userCart.id) }, data: { updated_at: new Date() } });
+      await tx.carrito.update({
+        where: { id: Number(userCart.id) },
+        data: { updated_at: new Date() },
+      });
 
       return { merged: true, carrito: userCart };
     });
