@@ -1,82 +1,51 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { PrismaClient } from "../generated/prisma";
+import { registerUser, loginUser } from "../services/auth.service";
 
-const prisma = new PrismaClient();
-
-export const register = async (req: Request, res: Response): Promise<any> => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    res.status(400).json({ errors: errors.array() });
+    return;
   }
 
   const { nombre, apellido, email, telefono, contrasena } = req.body;
 
   try {
-    const existingUser = await prisma.usuarios.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ message: "El correo ya está registrado" });
-    }
-
-    const hashedPassword = await bcrypt.hash(contrasena, 10);
-
-    const newUser = await prisma.usuarios.create({
-      data: {
-        nombre,
-        apellido,
-        email,
-        telefono,
-        contrasena: hashedPassword,
-        tipo_usuario: "cliente",
-      },
-    });
-
+    const usuario = await registerUser({ nombre, apellido, email, telefono, contrasena });
     res.status(201).json({
       message: "Usuario registrado con éxito",
-      usuario: {
-        ...newUser,
-        usuario_id: Number(newUser.usuario_id),
-      },
+      usuario,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "El correo ya está registrado") {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    console.error("Error en register:", error);
     res.status(500).json({ message: "Error en el servidor", error });
   }
 };
 
-export const login = async (req: Request, res: Response): Promise<any> => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, contrasena, recordar } = req.body;
 
   try {
-    const user = await prisma.usuarios.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ message: "Usuario no encontrado" });
-    }
-
-    const isMatch = await bcrypt.compare(contrasena, user.contrasena);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Contraseña incorrecta" });
-    }
-    const expiresIn = recordar ? "7d" : "2h";
-
-    const token = jwt.sign(
-      {
-        id: Number(user.usuario_id),
-        email: user.email,
-        role: user.tipo_usuario,
-      },
-      process.env.JWT_SECRET as string,
-      { expiresIn }
-    );
-
+    const { token, expiracion } = await loginUser(email, contrasena, recordar);
     res.json({
       message: "Login exitoso",
       token,
       recordar,
-      expiracion: expiresIn,
+      expiracion,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (
+      error.message === "Usuario no encontrado" ||
+      error.message === "Contraseña incorrecta"
+    ) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
     console.error("Error en login:", error);
     res.status(500).json({ message: "Error en el servidor", error });
   }

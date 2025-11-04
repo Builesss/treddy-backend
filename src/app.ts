@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.routes";
 import redirectRoutes from "./routes/redirect.routes";
 import userRoutes from "./routes/users.routes";
 import cartRoutes from "./routes/cart.routes";
+import gcsRoutes from "./routes/gcs.routes";
 import { setupSwagger } from "./swagger";
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/cart', cartRoutes); 
+app.use('/api/gcs', gcsRoutes);
 app.use('/', redirectRoutes);
 
 export default app;
