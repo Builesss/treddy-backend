@@ -1,4 +1,5 @@
 import { PrismaClient } from "../generated/prisma";
+import { gcsKey } from "../lib/gcs";
 
 const prisma = new PrismaClient();
 
@@ -24,17 +25,29 @@ export const figurasService = {
     imagenUrl?: string;
     categorias?: string[];
   }) {
-    const imagen = data.imagenUrl?.split("/").pop() || "default.png";
+    const nombreArchivo = data.imagenUrl
+      ? decodeURIComponent(data.imagenUrl.split("/").pop()!.split("?")[0])
+      : "default.png";
+
+    const imagen_path = gcsKey("images/productos", nombreArchivo);
+
+    if (imagen_path.length > 255) {
+      throw new Error(
+        `Ruta de imagen demasiado larga (${imagen_path.length} caracteres).`
+      );
+    }
+
     const nuevaFigura = await prisma.productos.create({
       data: {
         nombre: data.nombre,
         precio_base: data.precio,
-        imagen,
+        imagen_path,
         categoria: data.categorias?.[0] || "General",
         stock: 10,
         estado: "activo",
       },
     });
+
     return { ...nuevaFigura, producto_id: Number(nuevaFigura.producto_id) };
   },
 
@@ -47,14 +60,24 @@ export const figurasService = {
     });
     if (!figuraExistente) return null;
 
-    const imagen = data.imagenUrl?.split("/").pop() || figuraExistente.imagen;
+    const nombreArchivo = data.imagenUrl
+      ? decodeURIComponent(data.imagenUrl.split("/").pop()!.split("?")[0])
+      : figuraExistente.imagen_path?.split("/").pop() || "default.png";
+
+    const imagen_path = gcsKey("images/productos", nombreArchivo);
+
+    if (imagen_path.length > 255) {
+      throw new Error(
+        `Ruta de imagen demasiado larga (${imagen_path.length} caracteres).`
+      );
+    }
 
     const figuraActualizada = await prisma.productos.update({
       where: { producto_id: id },
       data: {
         nombre: data.nombre || figuraExistente.nombre,
         precio_base: data.precio ?? figuraExistente.precio_base,
-        imagen,
+        imagen_path,
         categoria: data.categorias?.[0] || figuraExistente.categoria,
       },
     });
