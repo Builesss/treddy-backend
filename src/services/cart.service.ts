@@ -1,5 +1,6 @@
 import { PrismaClient } from "../generated/prisma";
 import Decimal from "decimal.js";
+import { getSignedUrl, gcsKey } from "../lib/gcs";
 
 const prisma = new PrismaClient();
 
@@ -64,6 +65,7 @@ async function touchCartUpdatedAt(carritoId: number) {
 export const cartService = {
   async getCart(userId?: number, sessionId?: string) {
     const base = await getOrCreateCart(userId, sessionId);
+
     const cart = await prisma.carrito.findUnique({
       where: { id: base.id },
       include: {
@@ -75,7 +77,7 @@ export const cartService = {
                 nombre: true,
                 descripcion: true,
                 precio_base: true,
-                imagen: true,
+                imagen_path: true,
                 categoria: true,
                 stock: true,
                 estado: true,
@@ -86,13 +88,30 @@ export const cartService = {
       },
     });
 
-    const total = (cart?.carrito_item || []).reduce((acc: Decimal, it: any) => {
+    if (!cart) return null;
+
+    const itemsConUrl = await Promise.all(
+      cart.carrito_item.map(async (it) => {
+        const key = it.productos.imagen_path || gcsKey("images/productos", "default.png");
+        const imagenUrl = await getSignedUrl(key);
+
+        return {
+          ...it,
+          productos: {
+            ...it.productos,
+            imagenUrl,
+          },
+        };
+      })
+    );
+
+    const total = itemsConUrl.reduce((acc: Decimal, it: any) => {
       const p = new Decimal(it.precio_unitario.toString());
       const c = new Decimal((it.cantidad ?? 1).toString());
       return acc.plus(p.mul(c));
     }, new Decimal(0));
 
-    return { ...cart, total: total.toFixed(2) };
+    return { ...cart, carrito_item: itemsConUrl, total: total.toFixed(2) };
   },
 
   async addItem(userId?: number, sessionId?: string, productoId?: number, cantidad = 1) {

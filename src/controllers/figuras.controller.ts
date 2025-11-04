@@ -1,15 +1,18 @@
 import { Request, Response } from "express";
 import { figurasService } from "../services/figuras.service";
+import { getSignedUrl, gcsKey } from "../lib/gcs";
 
 export const getFiguras = async (req: Request, res: Response): Promise<void> => {
   try {
     const figuras = await figurasService.getAll();
 
-    const figurasConUrl = figuras.map((f) => ({
-      ...f,
-      imagenUrl: `${req.protocol}://${req.get("host")}/images/${f.imagen}`,
-      cantidad: 1,
-    }));
+    const figurasConUrl = await Promise.all(
+      figuras.map(async (f) => {
+        const key = f.imagen_path || gcsKey("images/productos", "default.png");
+        const imagenUrl = await getSignedUrl(key);
+        return { ...f, imagenUrl, cantidad: 1 };
+      })
+    );
 
     res.json(figurasConUrl);
   } catch (error) {
@@ -28,9 +31,12 @@ export const getFiguraById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    const key = figura.imagen_path || gcsKey("images/productos", "default.png");
+    const imagenUrl = await getSignedUrl(key);
+
     res.json({
       ...figura,
-      imagenUrl: `${req.protocol}://${req.get("host")}/images/${figura.imagen}`,
+      imagenUrl,
     });
   } catch (error) {
     console.error("Error al obtener figura:", error);
@@ -54,9 +60,12 @@ export const createFigura = async (req: Request, res: Response): Promise<void> =
       categorias,
     });
 
+    const key = nueva.imagen_path || gcsKey("images/productos", "default.png");
+    const url = await getSignedUrl(key);
+
     res.status(201).json({
       ...nueva,
-      imagenUrl: `${req.protocol}://${req.get("host")}/images/${nueva.imagen}`,
+      imagenUrl: url,
     });
   } catch (error) {
     console.error("Error al crear figura:", error);
@@ -81,9 +90,12 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    const key = figura.imagen_path || gcsKey("images/productos", "default.png");
+    const url = await getSignedUrl(key);
+
     res.json({
       ...figura,
-      imagenUrl: `${req.protocol}://${req.get("host")}/images/${figura.imagen}`,
+      imagenUrl: url,
     });
   } catch (error) {
     console.error("Error al actualizar figura:", error);
