@@ -1,18 +1,18 @@
 import { Request, Response } from "express";
 import { figurasService } from "../services/figuras.service";
-import { getSignedUrl, gcsKey } from "../lib/gcs";
+import { gcsKey } from "../lib/gcs";
+
+const CDN_BASE_URL = "http://136.110.207.221";
 
 export const getFiguras = async (req: Request, res: Response): Promise<void> => {
   try {
     const figuras = await figurasService.getAll();
 
-    const figurasConUrl = await Promise.all(
-      figuras.map(async (f) => {
-        const key = f.imagen_path || gcsKey("images/productos", "default.png");
-        const imagenUrl = await getSignedUrl(key);
-        return { ...f, imagenUrl, cantidad: 1 };
-      })
-    );
+    const figurasConUrl = figuras.map((f) => {
+      const key = f.imagen_path || gcsKey("images/productos", "default.png");
+      const imagenUrl = `${CDN_BASE_URL}/${key}`;
+      return { ...f, imagenUrl, cantidad: 1 };
+    });
 
     res.json(figurasConUrl);
   } catch (error) {
@@ -32,7 +32,7 @@ export const getFiguraById = async (req: Request, res: Response): Promise<void> 
     }
 
     const key = figura.imagen_path || gcsKey("images/productos", "default.png");
-    const imagenUrl = await getSignedUrl(key);
+    const imagenUrl = `${CDN_BASE_URL}/${key}`;
 
     res.json({
       ...figura,
@@ -61,7 +61,7 @@ export const createFigura = async (req: Request, res: Response): Promise<void> =
     });
 
     const key = nueva.imagen_path || gcsKey("images/productos", "default.png");
-    const url = await getSignedUrl(key);
+    const url = `${CDN_BASE_URL}/${key}`;
 
     res.status(201).json({
       ...nueva,
@@ -91,7 +91,7 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
     }
 
     const key = figura.imagen_path || gcsKey("images/productos", "default.png");
-    const url = await getSignedUrl(key);
+    const url = `${CDN_BASE_URL}/${key}`;
 
     res.json({
       ...figura,
