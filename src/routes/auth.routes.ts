@@ -96,7 +96,11 @@ router.post("/login", login);
  *       401:
  *         description: Token inválido o ausente
  */
-router.get("/profile", passport.authenticate("jwt", { session: false }), getProfile);
+router.get(
+  "/profile",
+  passport.authenticate("jwt", { session: false }),
+  getProfile
+);
 
 // ---------- GOOGLE AUTH ----------
 
@@ -110,14 +114,21 @@ router.get("/profile", passport.authenticate("jwt", { session: false }), getProf
  *       302:
  *         description: Redirige a la página de autenticación de Google
  */
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-
 router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.all(
   "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: "/login?error=google" }),
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "http://localhost:3000/auth/login?error=google",
+  }),
   (req: any, res) => {
     const token = req.user.token;
-    res.redirect(`https://002c169d9f91.ngrok-free.app/auth/callback?token=${token}`);
+
+    res.redirect(`http://localhost:3000/auth/callback?token=${token}`);
   }
 );
 
@@ -136,45 +147,32 @@ router.get(
 router.get(
   "/microsoft",
   (req, res, next) => {
-    console.log("🔵 [MICROSOFT AUTH] → Iniciando flujo de autenticación con Microsoft...");
     next();
   },
-  passport.authenticate("azuread-openidconnect", { prompt: "login" })
+  passport.authenticate("microsoft", {
+    prompt: "select_account",
+  })
 );
 
 router.all(
   "/microsoft/callback",
   (req, res, next) => {
-    console.log("🟡 [MICROSOFT CALLBACK] → Callback recibido desde Microsoft");
-    console.log("🟡 Headers:", req.headers);
-    console.log("🟡 Body:", req.body);
     next();
   },
-  passport.authenticate("azuread-openidconnect", { session: false, failureRedirect: "/login?error=microsoft" }),
+  passport.authenticate("microsoft", {
+    session: false,
+    failureRedirect: "http://localhost:3000/auth/login?error=microsoft",
+  }),
   (req: any, res) => {
     if (!req.user) {
-      console.error("❌ [MICROSOFT CALLBACK] → No se recibió el usuario desde Passport");
       return res.redirect("http://localhost:3000/auth/login?error=no_user");
     }
 
-    console.log("✅ [MICROSOFT CALLBACK] → Usuario autenticado correctamente");
-    console.log("👤 Usuario:", {
-      id: req.user?.user?.usuario_id,
-      nombre: req.user?.user?.nombre,
-      email: req.user?.user?.email,
-      role: req.user?.user?.tipo_usuario,
-    });
-
     if (!req.user.token) {
-      console.error("❌ [MICROSOFT CALLBACK] → No se generó token JWT");
-      return res.redirect("http://localhost:3000/login?error=no_token");
+      return res.redirect("http://localhost:3000/auth/login?error=no_token");
     }
-
-    console.log("🪪 [MICROSOFT CALLBACK] → Token generado correctamente");
-    console.log("🔁 Redirigiendo a frontend con token...");
 
     res.redirect(`http://localhost:3000/auth/callback?token=${req.user.token}`);
   }
 );
-
 export default router;
