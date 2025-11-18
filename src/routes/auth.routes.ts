@@ -1,11 +1,10 @@
 import { Router } from "express";
-import { register, login } from "../controllers/auth.controller";
+import passport from "../config/passport";
+import jwt from "jsonwebtoken";
+import { register, login, getProfile } from "../controllers/auth.controller";
 import { registerValidation } from "../middlewares/validateUser";
 
 const router = Router();
-
-router.post("/register", registerValidation, register);
-router.post("/login", login);
 
 /**
  * @swagger
@@ -13,6 +12,8 @@ router.post("/login", login);
  *   name: Auth
  *   description: Rutas de autenticación de usuarios
  */
+
+// ---------- RUTAS CLÁSICAS ----------
 
 /**
  * @swagger
@@ -42,6 +43,7 @@ router.post("/login", login);
  *       400:
  *         description: Error de validación
  */
+router.post("/register", registerValidation, register);
 
 /**
  * @swagger
@@ -78,6 +80,99 @@ router.post("/login", login);
  *       401:
  *         description: Credenciales inválidas
  */
+router.post("/login", login);
 
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   get:
+ *     summary: Obtener perfil del usuario autenticado (requiere token JWT)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Perfil del usuario autenticado
+ *       401:
+ *         description: Token inválido o ausente
+ */
+router.get(
+  "/profile",
+  passport.authenticate("jwt", { session: false }),
+  getProfile
+);
 
+// ---------- GOOGLE AUTH ----------
+
+/**
+ * @swagger
+ * /api/auth/google:
+ *   get:
+ *     summary: Iniciar sesión con Google
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: Redirige a la página de autenticación de Google
+ */
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.all(
+  "/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "http://localhost:3000/auth/login?error=google",
+  }),
+  (req: any, res) => {
+    const token = req.user.token;
+
+    res.redirect(`http://localhost:3000/auth/callback?token=${token}`);
+  }
+);
+
+// ---------- MICROSOFT AUTH ----------
+
+/**
+ * @swagger
+ * /api/auth/microsoft:
+ *   get:
+ *     summary: Iniciar sesión con Microsoft
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: Redirige a la página de autenticación de Microsoft
+ */
+router.get(
+  "/microsoft",
+  (req, res, next) => {
+    next();
+  },
+  passport.authenticate("microsoft", {
+    prompt: "select_account",
+  })
+);
+
+router.all(
+  "/microsoft/callback",
+  (req, res, next) => {
+    next();
+  },
+  passport.authenticate("microsoft", {
+    session: false,
+    failureRedirect: "http://localhost:3000/auth/login?error=microsoft",
+  }),
+  (req: any, res) => {
+    if (!req.user) {
+      return res.redirect("http://localhost:3000/auth/login?error=no_user");
+    }
+
+    if (!req.user.token) {
+      return res.redirect("http://localhost:3000/auth/login?error=no_token");
+    }
+
+    res.redirect(`http://localhost:3000/auth/callback?token=${req.user.token}`);
+  }
+);
 export default router;
