@@ -50,3 +50,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ message: "Error en el servidor", error });
   }
 };
+
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "No autorizado" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Perfil obtenido correctamente",
+      user: req.user,
+    });
+  } catch (error) {
+    console.error("Error en getProfile:", error);
+    res.status(500).json({ message: "Error al obtener el perfil", error });
+  }
+};
