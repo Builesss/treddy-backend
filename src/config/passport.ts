@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { OIDCStrategy as MicrosoftStrategy } from "passport-azure-ad";
+import { Strategy as MicrosoftStrategy } from "passport-microsoft";
 import { PrismaClient } from "../generated/prisma";
 import jwt from "jsonwebtoken";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
@@ -23,10 +23,11 @@ passport.use(
         if (!email) return done(new Error("No se pudo obtener el correo"), undefined);
 
         let user = await prisma.usuarios.findUnique({ where: { email } });
+
         if (!user) {
           user = await prisma.usuarios.create({
             data: {
-              nombre: profile.name?.givenName || "Usuario",
+              nombre: profile.name?.givenName || profile.displayName || "Usuario",
               apellido: profile.name?.familyName || "",
               email,
               telefono: "",
@@ -53,59 +54,23 @@ passport.use(
 passport.use(
   new MicrosoftStrategy(
     {
-      identityMetadata: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0/.well-known/openid-configuration`,
       clientID: process.env.AZURE_AD_CLIENT_ID!,
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-      responseType: "code",
-      responseMode: "form_post",
-      passReqToCallback: false,
-      redirectUrl: process.env.MICROSOFT_CALLBACK_URL!,
-      allowHttpForRedirectUrl: true,
-      scope: ["openid", "profile", "email"],
+      callbackURL: process.env.MICROSOFT_CALLBACK_URL!,
+      scope: ["user.read"],
+      tenant: "common",
     },
-    async (
-      _iss: string | undefined,
-      _sub: string | undefined,
-      profile: any,
-      _accessToken: string | undefined,
-      _refreshToken: string | undefined,
-      done: (err: any, user?: any) => void
-    ) => {
-      console.log("🟢 [PASSPORT] → Callback de Microsoft recibido en la estrategia");
-
+    async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {
-        if (!profile) {
-          console.error("❌ [PASSPORT] → No se recibió el perfil de Microsoft");
-          return done(new Error("Perfil vacío"), null);
-        }
+        const email = profile.emails?.[0]?.value;
+        if (!email) return done(new Error("No se pudo obtener el email"), null);
 
-        console.log("👤 [PASSPORT] → Perfil recibido de Microsoft:");
-        console.log({
-          id: profile.id,
-          displayName: profile.displayName,
-          emails: profile._json?.email || profile._json?.preferred_username,
-        });
-
-        const email =
-          profile._json?.email ||
-          profile._json?.preferred_username ||
-          profile.emails?.[0]?.value;
-
-        if (!email) {
-          console.error("❌ [PASSPORT] → No se pudo obtener el correo electrónico del perfil");
-          return done(new Error("No se pudo obtener el correo"), null);
-        }
-
-        console.log(`📧 [PASSPORT] → Correo detectado: ${email}`);
-
-        // Buscar usuario existente
         let user = await prisma.usuarios.findUnique({ where: { email } });
 
         if (!user) {
-          console.log("🆕 [PASSPORT] → Usuario no encontrado, creando nuevo usuario en la base de datos...");
           user = await prisma.usuarios.create({
             data: {
-              nombre: profile.displayName || "Usuario",
+              nombre: profile.displayName || "Usuario Microsoft",
               apellido: "",
               email,
               telefono: "",
@@ -113,19 +78,8 @@ passport.use(
               tipo_usuario: "cliente",
             },
           });
-          console.log("✅ [PASSPORT] → Usuario creado exitosamente:", {
-            id: user.usuario_id,
-            email: user.email,
-          });
-        } else {
-          console.log("👥 [PASSPORT] → Usuario existente encontrado:", {
-            id: user.usuario_id,
-            email: user.email,
-          });
         }
 
-        // Generar token JWT
-        console.log("🔐 [PASSPORT] → Generando token JWT...");
         const token = jwt.sign(
           {
             id: Number(user.usuario_id),
@@ -136,12 +90,8 @@ passport.use(
           { expiresIn: "7d" }
         );
 
-        console.log("✅ [PASSPORT] → Token generado correctamente (truncado):", token.slice(0, 20) + "...");
-
         return done(null, { user, token });
-      } catch (err: any) {
-        console.error("🔥 [PASSPORT ERROR] → Error en la estrategia de Microsoft:");
-        console.error(err);
+      } catch (err) {
         return done(err, null);
       }
     }
@@ -159,7 +109,9 @@ passport.use(
         const user = await prisma.usuarios.findUnique({
           where: { usuario_id: jwt_payload.id },
         });
+
         if (!user) return done(null, false);
+
         return done(null, user);
       } catch (err) {
         return done(err, false);
@@ -167,6 +119,5 @@ passport.use(
     }
   )
 );
-
 
 export default passport;
