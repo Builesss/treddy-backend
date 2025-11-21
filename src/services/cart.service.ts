@@ -107,7 +107,7 @@ export const cartService = {
         return {
           ...it,
           precio_unitario: Number(
-            it.precio_unitario ?? it.productos?.precio_base ?? 0
+            it.precio_unitario ?? it.productos?.precio_base ?? new Decimal(0)
           ),
           productos: {
             ...it.productos,
