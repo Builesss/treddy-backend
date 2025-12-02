@@ -35,3 +35,82 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     res.status(400).json({ message: error.message });
   }
 };
+
+export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    
+    if (!user || !user.usuario_id) {
+      res.status(401).json({ message: "No autorizado" });
+      return;
+    }
+
+    const userId = typeof user.usuario_id === 'bigint' 
+      ? Number(user.usuario_id) 
+      : Number(user.usuario_id);
+
+    const profile = await usersService.getProfile(userId);
+    res.json({
+      message: "Perfil obtenido con éxito",
+      usuario: profile,
+    });
+  } catch (error: any) {
+    console.error("Error en getUserProfile:", error);
+    const status = error.message === "Usuario no encontrado" ? 404 : 500;
+    res.status(status).json({ message: error.message });
+  }
+};
+
+
+export const updateUserProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || !user.usuario_id) {
+      res.status(401).json({ message: "No autorizado" });
+      return;
+    }
+
+    const userId = typeof user.usuario_id === 'bigint' 
+      ? Number(user.usuario_id) 
+      : Number(user.usuario_id);
+
+    const { nombre, apellido, telefono } = req.body;
+    const updated = await usersService.updateProfile(userId, {
+      nombre,
+      apellido,
+      telefono,
+    });
+
+    res.json({
+      message: "Perfil actualizado con éxito",
+      usuario: updated,
+    });
+  } catch (error: any) {
+    console.error("Error en updateUserProfile:", error);
+    const status = error.message === "Usuario no encontrado" ? 404 : 500;
+    res.status(status).json({ message: error.message });
+  }
+};
+
+export const getUserOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || !user.usuario_id) {
+      res.status(401).json({ message: "No autorizado" });
+      return;
+    }
+
+    const userId = typeof user.usuario_id === 'bigint' 
+      ? Number(user.usuario_id) 
+      : Number(user.usuario_id);
+
+    const orders = await usersService.getUserOrders(userId);
+    res.json({
+      message: `Se encontraron ${orders.length} pedidos`,
+      pedidos: orders,
+    });
+  } catch (error: any) {
+    console.error("Error en getUserOrders:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
