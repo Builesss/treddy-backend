@@ -162,14 +162,14 @@ function getResetPasswordEmailTemplate(name: string, url: string): string {
     <tr>
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; border: 1px solid #e4e4e7; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
-          <!-- Header -->
+
           <tr>
             <td style="background-color: #000000; padding: 30px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; letter-spacing: 1px;">TREDDY</h1>
             </td>
           </tr>
           
-          <!-- Content -->
+
           <tr>
             <td style="padding: 40px 30px;">
               <h2 style="color: #18181b; margin-top: 0; margin-bottom: 20px; font-size: 24px; font-weight: 600;">Recuperación de Contraseña</h2>
@@ -182,7 +182,7 @@ function getResetPasswordEmailTemplate(name: string, url: string): string {
                 Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en Treddy. Si no has sido tú, puedes ignorar este correo tranquilamente.
               </p>
               
-              <!-- Button -->
+
               <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                 <tr>
                   <td align="center">
@@ -205,7 +205,7 @@ function getResetPasswordEmailTemplate(name: string, url: string): string {
             </td>
           </tr>
           
-          <!-- Footer -->
+
           <tr>
             <td style="background-color: #f4f4f5; padding: 20px; text-align: center; border-top: 1px solid #e4e4e7;">
               <p style="color: #a1a1aa; font-size: 12px; margin: 0;">

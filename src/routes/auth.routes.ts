@@ -13,7 +13,7 @@ const router = Router();
  *   description: Rutas de autenticación de usuarios
  */
 
-// ---------- RUTAS CLÁSICAS ----------
+
 
 /**
  * @swagger
@@ -102,7 +102,7 @@ router.get(
   getProfile
 );
 
-// ---------- GOOGLE AUTH ----------
+
 
 /**
  * @swagger
@@ -132,7 +132,7 @@ router.all(
   }
 );
 
-// ---------- MICROSOFT AUTH ----------
+
 
 /**
  * @swagger
