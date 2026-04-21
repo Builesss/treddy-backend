@@ -1,4 +1,4 @@
-import { bucket, gcsKey } from "../lib/gcs";
+import { supabase, bucketName, gcsKey, getPublicUrl } from "../lib/gcs";
 import { v4 as uuid } from "uuid";
 import { lookup as mimeLookup } from "mime-types";
 
@@ -18,21 +18,22 @@ export async function uploadBufferToGCS(opts: UploadOptions) {
   const contentType =
     opts.contentType || (mimeLookup(ext) as string) || "application/octet-stream";
 
-  const file = bucket.file(objectName);
-
-  await file.save(opts.buffer, {
-    resumable: false,
+  const { data, error } = await supabase.storage.from(bucketName).upload(objectName, opts.buffer, {
     contentType,
-    metadata: {
-      cacheControl: "public, max-age=31536000, immutable",
-    },
+    upsert: false,
+    cacheControl: "31536000",
   });
 
+  if (error) {
+    throw new Error(`Error uploading to Supabase: ${error.message}`);
+  }
+
+  // The bucket is now configured as public, so we don't necessarily have to "makePublic".
+  // Let's adapt the makePublic behavior to return publicUrl.
   if (opts.makePublic) {
-    await file.makePublic();
     return {
       objectName,
-      publicUrl: `https://storage.googleapis.com/${bucket.name}/${objectName}`,
+      publicUrl: getPublicUrl(objectName),
     };
   }
 
@@ -40,10 +41,12 @@ export async function uploadBufferToGCS(opts: UploadOptions) {
 }
 
 export async function generateSignedUrl(objectName: string, expiresInSeconds = 86400) {
-  const [url] = await bucket.file(objectName).getSignedUrl({
-    version: "v4",
-    action: "read",
-    expires: Date.now() + expiresInSeconds * 1000,
-  });
-  return url;
+  // We can just rely on the getPublicUrl now that the bucket is public,
+  // or return a signed URL via Supabase as before:
+  const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(objectName, expiresInSeconds);
+  if (error || !data) {
+    throw new Error(error?.message || "Error generating signed url");
+  }
+  return data.signedUrl;
 }
+
