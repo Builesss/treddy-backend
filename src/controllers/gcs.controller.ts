@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { uploadBufferToGCS, generateSignedUrl } from "../services/gcs.service";
-import { bucket } from "../lib/gcs";
+import { supabase, bucketName, getPublicUrl } from "../lib/gcs";
 
 interface MulterFile {
   fieldname: string;
@@ -84,14 +84,21 @@ export const listImagesFromBucket = async (req: Request, res: Response): Promise
   try {
     const folder = (req.query.folder as string) || "images/productos";
 
-    const [files] = await bucket.getFiles({ prefix: folder });
+    const { data: files, error } = await supabase.storage.from(bucketName).list(folder);
 
-    const images = files.map((file) => ({
+    if (error) {
+      throw new Error(`Error en listar: ${error.message}`);
+    }
+
+    // Filter out potential empty objects or directories if Supabase returns them
+    const validFiles = files ? files.filter(file => file.name && file.metadata) : [];
+
+    const images = validFiles.map((file) => ({
       name: file.name,
-      publicUrl: `https://storage.googleapis.com/${bucket.name}/${file.name}`,
-      size: Number(file.metadata.size),
-      updated: file.metadata.updated,
-      contentType: file.metadata.contentType,
+      publicUrl: getPublicUrl(`${folder}/${file.name}`),
+      size: file.metadata?.size || 0,
+      updated: file.created_at || file.updated_at,
+      contentType: file.metadata?.mimetype || "application/octet-stream",
     }));
 
     res.json(images);
@@ -110,15 +117,9 @@ export const getImageFromBucket = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const file = bucket.file(name);
-    const [exists] = await file.exists();
-
-    if (!exists) {
-      res.status(404).json({ error: "La imagen no existe en el bucket" });
-      return;
-    }
-
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${name}`;
+    // Para verificar si existe podríamos listar o simplemente devolver la url pública
+    // Supabase no tiene una funcion exists directa sin descargar o listar
+    const publicUrl = getPublicUrl(name);
 
     res.json({ name, publicUrl });
   } catch (error) {
@@ -126,3 +127,4 @@ export const getImageFromBucket = async (req: Request, res: Response): Promise<v
     res.status(500).json({ error: "Error al obtener la imagen del bucket" });
   }
 };
+
