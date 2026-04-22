@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import { figurasService } from "../services/figuras.service";
-import { gcsKey } from "../lib/gcs";
-
-const CDN_BASE_URL = "http://136.110.207.221";
+import { gcsKey, getPublicUrl } from "../lib/gcs";
 
 export const getFiguras = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -10,7 +8,7 @@ export const getFiguras = async (req: Request, res: Response): Promise<void> => 
 
     const figurasConUrl = figuras.map((f) => {
       const key = f.imagen_path || gcsKey("images/productos", "default.png");
-      const imagenUrl = `${CDN_BASE_URL}/${key}`;
+      const imagenUrl = getPublicUrl(key);
       return { ...f, imagenUrl, cantidad: 1 };
     });
 
@@ -32,7 +30,7 @@ export const getFiguraById = async (req: Request, res: Response): Promise<void> 
     }
 
     const key = figura.imagen_path || gcsKey("images/productos", "default.png");
-    const imagenUrl = `${CDN_BASE_URL}/${key}`;
+    const imagenUrl = getPublicUrl(key);
 
     res.json({
       ...figura,
@@ -61,7 +59,7 @@ export const createFigura = async (req: Request, res: Response): Promise<void> =
     });
 
     const key = nueva.imagen_path || gcsKey("images/productos", "default.png");
-    const url = `${CDN_BASE_URL}/${key}`;
+    const url = getPublicUrl(key);
 
     res.status(201).json({
       ...nueva,
@@ -91,7 +89,7 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
     }
 
     const key = figura.imagen_path || gcsKey("images/productos", "default.png");
-    const url = `${CDN_BASE_URL}/${key}`;
+    const url = getPublicUrl(key);
 
     res.json({
       ...figura,
