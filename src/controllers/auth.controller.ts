@@ -41,13 +41,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   } catch (error: any) {
     if (
       error.message === "Usuario no encontrado" ||
-      error.message === "Contraseña incorrecta"
+      error.message === "Contraseña incorrecta" ||
+      error.message === "Debes verificar tu cuenta antes de iniciar sesión." ||
+      error.message === "Tu cuenta está inactiva."
     ) {
       res.status(400).json({ message: error.message });
       return;
     }
-    console.error("Error en login:", error);
-    res.status(500).json({ message: "Error en el servidor", error });
+    console.error("Error en login:", error.message || error);
+    res.status(500).json({ message: "Error en el servidor", error: error.message });
   }
 };
 
