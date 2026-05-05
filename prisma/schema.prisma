@@ -154,6 +154,7 @@ model usuarios {
   telefono           String?              @db.VarChar(20)
   contrasena         String               @db.VarChar(255)
   tipo_usuario       String               @db.VarChar(20)
+  estado             String               @default("Pendiente") @db.VarChar(20)
   created_at         DateTime             @default(now()) @db.Timestamp(6)
   updated_at         DateTime             @default(now()) @db.Timestamp(6)
   auditoria          auditoria[]

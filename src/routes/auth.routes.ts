@@ -1,7 +1,7 @@
 import { Router } from "express";
 import passport from "../config/passport";
 import jwt from "jsonwebtoken";
-import { register, login, getProfile } from "../controllers/auth.controller";
+import { register, login, getProfile, verifyEmailAccount } from "../controllers/auth.controller";
 import { registerValidation } from "../middlewares/validateUser";
 
 const router = Router();
@@ -44,6 +44,27 @@ const router = Router();
  *         description: Error de validación
  */
 router.post("/register", registerValidation, register);
+
+/**
+ * @swagger
+ * /api/auth/verify-email:
+ *   get:
+ *     summary: Verifica la cuenta de usuario mediante token
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Token de verificación enviado por correo
+ *     responses:
+ *       200:
+ *         description: Cuenta verificada con éxito
+ *       400:
+ *         description: Token inválido o expirado
+ */
+router.get("/verify-email", verifyEmailAccount);
 
 /**
  * @swagger
