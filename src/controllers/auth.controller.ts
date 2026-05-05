@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import { registerUser, loginUser } from "../services/auth.service";
+import { registerUser, loginUser, verifyEmail } from "../services/auth.service";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   const errors = validationResult(req);
@@ -65,5 +65,21 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
   } catch (error) {
     console.error("Error en getProfile:", error);
     res.status(500).json({ message: "Error al obtener el perfil", error });
+  }
+};
+
+export const verifyEmailAccount = async (req: Request, res: Response): Promise<void> => {
+  const { token } = req.query;
+
+  if (!token || typeof token !== "string") {
+    res.status(400).json({ message: "Token inválido o ausente" });
+    return;
+  }
+
+  try {
+    const result = await verifyEmail(token);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
   }
 };
