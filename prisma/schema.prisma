@@ -116,10 +116,10 @@ model personalizaciones {
   color              String?         @db.VarChar(50)
   tamano             String?         @db.VarChar(50)
   forma              String?         @db.VarChar(50)
-  archivo_3d_path    String?
-  vista_ar_path      String?
   created_at         DateTime        @default(now()) @db.Timestamp(6)
   updated_at         DateTime        @default(now()) @db.Timestamp(6)
+  archivo_3d_path    String?
+  vista_ar_path      String?
   detallepedido      detallepedido[]
   productos          productos       @relation(fields: [producto_id], references: [producto_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personalizaciones_productos")
 }
@@ -134,15 +134,16 @@ model productos {
   estado             String?              @default("activo") @db.VarChar(20)
   created_at         DateTime             @default(now()) @db.Timestamp(6)
   updated_at         DateTime             @default(now()) @db.Timestamp(6)
+  categoria          String?              @db.VarChar(100)
   imagen_path        String?              @db.VarChar(512)
   modelo_3d_path     String?              @db.VarChar(512)
-  vista_ar_path      String?              @db.VarChar(512)
   thumbnail_path     String?              @db.VarChar(512)
-  categoria          String?              @db.VarChar(100)
+  vista_ar_path      String?              @db.VarChar(512)
   carrito_item       carrito_item[]
   detallepedido      detallepedido[]
   historialproductos historialproductos[]
   personalizaciones  personalizaciones[]
+  resenas            resenas[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -154,14 +155,15 @@ model usuarios {
   telefono           String?              @db.VarChar(20)
   contrasena         String               @db.VarChar(255)
   tipo_usuario       String               @db.VarChar(20)
-  estado             String               @default("Pendiente") @db.VarChar(20)
   created_at         DateTime             @default(now()) @db.Timestamp(6)
   updated_at         DateTime             @default(now()) @db.Timestamp(6)
+  estado             String               @default("Pendiente") @db.VarChar(20)
   auditoria          auditoria[]
   envios             envios[]
   historialpedidos   historialpedidos[]
   historialproductos historialproductos[]
   pedidos            pedidos[]
+  resenas            resenas[]
 }
 
 model carrito {
@@ -183,4 +185,18 @@ model carrito_item {
   productos       productos @relation(fields: [producto_id], references: [producto_id], onDelete: NoAction, map: "fk_carritoitem_producto")
 
   @@unique([carrito_id, producto_id], map: "unique_carrito_producto")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resenas {
+  resena_id   BigInt    @id @default(autoincrement())
+  producto_id BigInt
+  usuario_id  BigInt
+  rating      Int
+  comentario  String
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  productos   productos @relation(fields: [producto_id], references: [producto_id], onDelete: Cascade)
+  usuarios    usuarios  @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade)
+
+  @@index([producto_id], map: "idx_resenas_producto")
 }
