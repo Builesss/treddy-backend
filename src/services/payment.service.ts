@@ -15,7 +15,7 @@ export const paymentService = {
     const frontendUrl = process.env.FRONTEND_URL || "https://treddy-frontend.vercel.app";
     const backendUrl = process.env.BACKEND_URL || "https://treddy-backend.onrender.com";
 
-    const preferenceData = {
+    const preferenceData: any = {
       items: items.map((item) => ({
         id: String(item.id),
         title: item.title,
@@ -29,9 +29,13 @@ export const paymentService = {
         pending: `${frontendUrl}/success?status=pending`,
       },
       auto_return: "approved" as const,
-      notification_url: `${backendUrl}/api/payment/webhook`,
       statement_descriptor: "TREDDY",
     };
+
+    // Solo agregar notification_url si el backend es accesible públicamente
+    if (backendUrl && !backendUrl.includes("localhost")) {
+      preferenceData.notification_url = `${backendUrl}/api/payment/webhook`;
+    }
 
     console.log("📦 Creating MP preference with items:", JSON.stringify(preferenceData.items));
 
