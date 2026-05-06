@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const emailService = {
   async sendVerificationEmail(email: string, name: string, token: string) {
     const verificationUrl = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
+      process.env.FRONTEND_URL || "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app"
     }/auth/verify?token=${token}`;
 
     await resend.emails.send({

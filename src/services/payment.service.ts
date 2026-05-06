@@ -21,12 +21,12 @@ export const paymentService = {
         unit_price: item.unit_price,
       })),
       back_urls: {
-        success: `${process.env.NGROK_URL}/success`,
-        failure: `${process.env.NGROK_URL}/failure`,
-        pending: `${process.env.NGROK_URL}/pending`,
+        success: `${process.env.BACKEND_URL}/success`,
+        failure: `${process.env.BACKEND_URL}/failure`,
+        pending: `${process.env.BACKEND_URL}/pending`,
       },
       auto_return: "approved",
-      notification_url: `${process.env.NGROK_URL}/api/payment/webhook`,
+      notification_url: `${process.env.BACKEND_URL}/api/payment/webhook`,
     };
 
     const response = await preference.create({ body: preferenceData });

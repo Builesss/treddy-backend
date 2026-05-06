@@ -10,7 +10,7 @@ describe("Payment Service", () => {
 
     // Setup environment variables
     process.env.MP_ACCESS_TOKEN = 'test-access-token';
-    process.env.NGROK_URL = 'https://test.ngrok.io';
+    process.env.BACKEND_URL = 'https://test.backend.io';
 
     // Mock MercadoPago SDK
     mockPreferenceCreate = jest.fn();
@@ -65,12 +65,12 @@ describe("Payment Service", () => {
             },
           ],
           back_urls: {
-            success: 'https://test.ngrok.io/success',
-            failure: 'https://test.ngrok.io/failure',
-            pending: 'https://test.ngrok.io/pending',
+            success: 'https://test.backend.io/success',
+            failure: 'https://test.backend.io/failure',
+            pending: 'https://test.backend.io/pending',
           },
           auto_return: 'approved',
-          notification_url: 'https://test.ngrok.io/api/payment/webhook',
+          notification_url: 'https://test.backend.io/api/payment/webhook',
         },
       });
 
@@ -124,11 +124,11 @@ describe("Payment Service", () => {
 
       const callArgs = mockPreferenceCreate.mock.calls[0][0];
       expect(callArgs.body.back_urls).toEqual({
-        success: 'https://test.ngrok.io/success',
-        failure: 'https://test.ngrok.io/failure',
-        pending: 'https://test.ngrok.io/pending',
+        success: 'https://test.backend.io/success',
+        failure: 'https://test.backend.io/failure',
+        pending: 'https://test.backend.io/pending',
       });
-      expect(callArgs.body.notification_url).toBe('https://test.ngrok.io/api/payment/webhook');
+      expect(callArgs.body.notification_url).toBe('https://test.backend.io/api/payment/webhook');
     });
 
     test('debería configurar auto_return como approved', async () => {

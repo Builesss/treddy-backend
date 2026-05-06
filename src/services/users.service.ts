@@ -115,7 +115,7 @@ export const usersService = {
     );
 
     const resetUrl = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
+      process.env.FRONTEND_URL || "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app"
     }/reset-password?token=${token}`;
 
     await resend.emails.send({

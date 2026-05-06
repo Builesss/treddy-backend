@@ -145,7 +145,7 @@ describe("Users Service", () => {
 
       const emailCall = resendEmailsSendMock.mock.calls[0][0];
       expect(emailCall.html).toContain(
-        "http://localhost:3000/reset-password?token=token-default"
+        "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app/reset-password?token=token-default"
       );
 
       process.env.FRONTEND_URL = originalUrl;
