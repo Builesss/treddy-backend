@@ -69,9 +69,7 @@ export const loginUser = async (email: string, contrasena: string, recordar: boo
     throw new Error("Contraseña incorrecta");
   }
 
-  if (user.estado === "Pendiente") {
-    throw new Error("Debes verificar tu cuenta antes de iniciar sesión.");
-  }
+  // Users with 'Pendiente' status can now log in but won't be able to purchase
 
   if (user.estado === "Inactivo") {
     throw new Error("Tu cuenta está inactiva.");
@@ -84,6 +82,7 @@ export const loginUser = async (email: string, contrasena: string, recordar: boo
       id: Number(user.usuario_id),
       email: user.email,
       role: user.tipo_usuario,
+      estado: user.estado,
     },
     process.env.JWT_SECRET as string,
     { expiresIn }
