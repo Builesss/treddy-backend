@@ -8,6 +8,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Verificar conexión SMTP al iniciar
+transporter.verify()
+  .then(() => console.log("✅ Conexión SMTP con Gmail establecida correctamente"))
+  .catch((err) => console.error("❌ Error de conexión SMTP:", err.message));
+
 const FROM_EMAIL = process.env.SMTP_USER || "noreply@treddy.com";
 
 export const emailService = {
