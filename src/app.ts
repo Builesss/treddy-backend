@@ -22,10 +22,21 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || 'https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app',
-    ],
-    credentials: true, 
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app',
+        'https://treddy-frontend-bv53h5ki8-builesss-projects.vercel.app',
+        'https://treddy-frontend.vercel.app'
+      ].filter(Boolean) as string[];
+
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
   })
 );
 
