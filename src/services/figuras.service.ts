@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { gcsKey } from "../lib/gcs";
 
 const prisma = new PrismaClient();
@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export const figurasService = {
   async getAll() {
     const figuras = await prisma.productos.findMany();
-    return figuras.map((f) => ({
+    return figuras.map((f: any) => ({
       ...f,
       producto_id: Number(f.producto_id),
     }));

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -18,7 +18,7 @@ export const getResenasByProducto = async (req: Request, res: Response): Promise
       },
     });
 
-    const result = resenas.map((r) => ({
+    const result = resenas.map((r: any) => ({
       resena_id: r.resena_id.toString(),
       rating: r.rating,
       comentario: r.comentario,

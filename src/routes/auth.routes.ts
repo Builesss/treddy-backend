@@ -144,12 +144,12 @@ router.all(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: "http://localhost:3000/auth/login?error=google",
+    failureRedirect: `${process.env.FRONTEND_URL}/auth/login?error=google`,
   }),
   (req: any, res) => {
     const token = req.user.token;
 
-    res.redirect(`http://localhost:3000/auth/callback?token=${token}`);
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
   }
 );
 
@@ -182,18 +182,18 @@ router.all(
   },
   passport.authenticate("microsoft", {
     session: false,
-    failureRedirect: "http://localhost:3000/auth/login?error=microsoft",
+    failureRedirect: `${process.env.FRONTEND_URL}/auth/login?error=microsoft`,
   }),
   (req: any, res) => {
     if (!req.user) {
-      return res.redirect("http://localhost:3000/auth/login?error=no_user");
+      return res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=no_user`);
     }
 
     if (!req.user.token) {
-      return res.redirect("http://localhost:3000/auth/login?error=no_token");
+      return res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=no_token`);
     }
 
-    res.redirect(`http://localhost:3000/auth/callback?token=${req.user.token}`);
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${req.user.token}`);
   }
 );
 export default router;

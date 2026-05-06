@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Resend } from "resend";
@@ -87,7 +87,7 @@ export const usersService = {
       orderBy: { fecha_pedido: "desc" },
     });
 
-    return pedidos.map((pedido) => ({
+    return pedidos.map((pedido: any) => ({
       id: Number(pedido.pedido_id),
       producto:
         pedido.detallepedido.length > 0
@@ -96,7 +96,7 @@ export const usersService = {
       fecha: pedido.fecha_pedido.toISOString().split("T")[0],
       estado: pedido.estado || "pendiente",
       total: Number(pedido.total),
-      items: pedido.detallepedido.map((detalle) => ({
+      items: pedido.detallepedido.map((detalle: any) => ({
         nombre: detalle.productos.nombre,
         cantidad: detalle.cantidad,
         subtotal: Number(detalle.subtotal),

@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import Decimal from "decimal.js";
 import { getSignedUrl, gcsKey } from "../lib/gcs";
 
@@ -22,7 +22,7 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
       });
 
       if (sessionCart) {
-        const merged = await prisma.$transaction(async (tx) => {
+        const merged = await prisma.$transaction(async (tx: any) => {
           const userCart = await tx.carrito.create({
             data: { user_id: userId },
           });
@@ -99,7 +99,7 @@ export const cartService = {
     if (!cart) return null;
 
     const itemsConUrl = await Promise.all(
-      cart.carrito_item.map(async (it) => {
+      cart.carrito_item.map(async (it: any) => {
         const key =
           it.productos.imagen_path || gcsKey("images/productos", "default.png");
         const imagenUrl = await getSignedUrl(key);
@@ -223,7 +223,7 @@ export const cartService = {
   },
 
   async mergeSessionCart(sessionId: string, userId: number) {
-    const out = await prisma.$transaction(async (tx) => {
+    const out = await prisma.$transaction(async (tx: any) => {
       let userCart = await tx.carrito.findUnique({
         where: { user_id: Number(userId) },
       });
