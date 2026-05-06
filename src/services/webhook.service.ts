@@ -1,21 +1,11 @@
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import nodemailer from "nodemailer";
+import { sendEmail } from "./email.service";
 
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN as string,
 });
 
 const paymentClient = new Payment(mpClient);
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-const FROM_EMAIL = process.env.SMTP_USER || "noreply@treddy.com";
 
 export const webhookService = {
   async handlePaymentEvent(data: any) {
@@ -32,11 +22,10 @@ export const webhookService = {
       0
     );
 
-    await transporter.sendMail({
-      from: `"Treddy" <${FROM_EMAIL}>`,
-      to: process.env.SALES_EMAIL || "sebasbuiles12@hotmail.com",
-      subject: "🎉 Pago confirmado",
-      html: `
+    await sendEmail(
+      process.env.SALES_EMAIL || "sebasbuiles12@hotmail.com",
+      "🎉 Pago confirmado",
+      `
         <h1>Gracias por tu compra</h1>
         <p>Tu pago de <strong>${payment.transaction_amount} ${payment.currency_id}</strong> fue aprobado.</p>
         <h2>Detalles de tu pedido:</h2>
@@ -67,8 +56,8 @@ export const webhookService = {
             </tr>
           </tfoot>
         </table>
-      `,
-    });
+      `
+    );
 
     return {
       status: "approved",

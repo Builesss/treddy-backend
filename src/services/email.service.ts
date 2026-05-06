@@ -1,19 +1,30 @@
-import nodemailer from "nodemailer";
+const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
+const FROM_EMAIL = process.env.SMTP_FROM || "noreply@treddy.com";
+const FROM_NAME = "Treddy";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+export async function sendEmail(to: string, subject: string, html: string) {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": BREVO_API_KEY,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
 
-// Verificar conexión SMTP al iniciar
-transporter.verify()
-  .then(() => console.log("✅ Conexión SMTP con Gmail establecida correctamente"))
-  .catch((err) => console.error("❌ Error de conexión SMTP:", err.message));
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Error enviando email: ${response.status} - ${error}`);
+  }
 
-const FROM_EMAIL = process.env.SMTP_USER || "noreply@treddy.com";
+  return response.json();
+}
 
 export const emailService = {
   async sendVerificationEmail(email: string, name: string, token: string) {
@@ -21,12 +32,11 @@ export const emailService = {
       process.env.FRONTEND_URL || "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app"
     }/auth/verify?token=${token}`;
 
-    await transporter.sendMail({
-      from: `"Treddy" <${FROM_EMAIL}>`,
-      to: email,
-      subject: "Verifica tu cuenta en Treddy",
-      html: getVerificationEmailTemplate(name, verificationUrl),
-    });
+    await sendEmail(
+      email,
+      "Verifica tu cuenta en Treddy",
+      getVerificationEmailTemplate(name, verificationUrl)
+    );
   },
 };
 

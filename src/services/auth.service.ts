@@ -44,13 +44,10 @@ export const registerUser = async (data: {
     { expiresIn: "24h" }
   );
 
-  // Enviar email de verificación sin bloquear el registro
-  try {
-    await emailService.sendVerificationEmail(newUser.email, newUser.nombre, verificationToken);
-    console.log(`✅ Email de verificación enviado a: ${newUser.email}`);
-  } catch (emailError) {
-    console.error(`❌ Error al enviar email de verificación a ${newUser.email}:`, emailError);
-  }
+  // Enviar email de verificación sin bloquear el registro (fire and forget)
+  emailService.sendVerificationEmail(newUser.email, newUser.nombre, verificationToken)
+    .then(() => console.log(`✅ Email de verificación enviado a: ${newUser.email}`))
+    .catch((emailError) => console.error(`❌ Error al enviar email de verificación a ${newUser.email}:`, emailError));
 
   return {
     ...newUser,

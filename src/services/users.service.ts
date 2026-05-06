@@ -1,19 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import nodemailer from "nodemailer";
+import { sendEmail } from "./email.service";
 
 const prisma = new PrismaClient();
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-const FROM_EMAIL = process.env.SMTP_USER || "noreply@treddy.com";
 
 export const usersService = {
   async getProfile(userId: number) {
@@ -127,12 +117,11 @@ export const usersService = {
       process.env.FRONTEND_URL || "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app"
     }/reset-password?token=${token}`;
 
-    await transporter.sendMail({
-      from: `"Treddy" <${FROM_EMAIL}>`,
-      to: user.email,
-      subject: "Recupera tu contraseña",
-      html: getResetPasswordEmailTemplate(user.nombre || "Usuario", resetUrl),
-    });
+    await sendEmail(
+      user.email,
+      "Recupera tu contraseña",
+      getResetPasswordEmailTemplate(user.nombre || "Usuario", resetUrl)
+    );
 
     return { message: "Correo enviado para recuperar contraseña" };
   },
