@@ -12,24 +12,32 @@ export const paymentService = {
       throw new Error("La lista de items es obligatoria");
     }
 
+    const frontendUrl = process.env.FRONTEND_URL || "https://treddy-frontend.vercel.app";
+    const backendUrl = process.env.BACKEND_URL || "https://treddy-backend.onrender.com";
+
     const preferenceData = {
       items: items.map((item) => ({
-        id: item.id,
+        id: String(item.id),
         title: item.title,
-        quantity: item.quantity,
-        currency_id: item.currency_id,
-        unit_price: item.unit_price,
+        quantity: Number(item.quantity),
+        currency_id: item.currency_id || "COP",
+        unit_price: Number(item.unit_price),
       })),
       back_urls: {
-        success: `${process.env.BACKEND_URL}/success`,
-        failure: `${process.env.BACKEND_URL}/failure`,
-        pending: `${process.env.BACKEND_URL}/pending`,
+        success: `${frontendUrl}/success`,
+        failure: `${frontendUrl}/success?status=failure`,
+        pending: `${frontendUrl}/success?status=pending`,
       },
-      auto_return: "approved",
-      notification_url: `${process.env.BACKEND_URL}/api/payment/webhook`,
+      auto_return: "approved" as const,
+      notification_url: `${backendUrl}/api/payment/webhook`,
+      statement_descriptor: "TREDDY",
     };
 
+    console.log("📦 Creating MP preference with items:", JSON.stringify(preferenceData.items));
+
     const response = await preference.create({ body: preferenceData });
+
+    console.log("✅ MP preference created:", response.id, "| init_point:", response.init_point);
 
     return {
       id: response.id,
