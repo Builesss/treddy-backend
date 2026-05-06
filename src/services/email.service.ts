@@ -1,6 +1,14 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+const FROM_EMAIL = process.env.SMTP_USER || "noreply@treddy.com";
 
 export const emailService = {
   async sendVerificationEmail(email: string, name: string, token: string) {
@@ -8,8 +16,8 @@ export const emailService = {
       process.env.FRONTEND_URL || "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app"
     }/auth/verify?token=${token}`;
 
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
+    await transporter.sendMail({
+      from: `"Treddy" <${FROM_EMAIL}>`,
       to: email,
       subject: "Verifica tu cuenta en Treddy",
       html: getVerificationEmailTemplate(name, verificationUrl),

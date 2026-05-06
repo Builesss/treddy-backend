@@ -1,12 +1,21 @@
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN as string,
 });
 
 const paymentClient = new Payment(mpClient);
-const resend = new Resend(process.env.RESEND_API_KEY);
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+const FROM_EMAIL = process.env.SMTP_USER || "noreply@treddy.com";
 
 export const webhookService = {
   async handlePaymentEvent(data: any) {
@@ -23,8 +32,8 @@ export const webhookService = {
       0
     );
 
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
+    await transporter.sendMail({
+      from: `"Treddy" <${FROM_EMAIL}>`,
       to: process.env.SALES_EMAIL || "sebasbuiles12@hotmail.com",
       subject: "🎉 Pago confirmado",
       html: `
