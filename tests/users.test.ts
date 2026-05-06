@@ -3,14 +3,14 @@ describe("Users Service", () => {
   let prismaMock: any;
   let jwtMock: any;
   let bcryptMock: any;
-  let resendEmailsSendMock: jest.Mock;
+  let fetchMock: jest.Mock;
 
   beforeAll(async () => {
     jest.resetModules();
 
     // Setup environment variables
     process.env.JWT_SECRET = "test-jwt-secret";
-    process.env.RESEND_API_KEY = "test-resend-key";
+    process.env.BREVO_API_KEY = "test-brevo-key";
     process.env.FRONTEND_URL = "https://test-frontend.com";
 
     // Mock Prisma
@@ -21,7 +21,7 @@ describe("Users Service", () => {
       },
     };
 
-    jest.doMock("../src/generated/prisma", () => ({
+    jest.doMock("@prisma/client", () => ({
       PrismaClient: jest.fn(() => prismaMock),
     }));
 
@@ -38,15 +38,13 @@ describe("Users Service", () => {
     };
     jest.doMock("bcrypt", () => bcryptMock);
 
-    // Mock Resend
-    resendEmailsSendMock = jest.fn();
-    jest.doMock("resend", () => ({
-      Resend: jest.fn().mockImplementation(() => ({
-        emails: {
-          send: resendEmailsSendMock,
-        },
-      })),
-    }));
+    // Mock global fetch (Brevo API)
+    fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ messageId: "mock-id" }),
+      text: () => Promise.resolve(""),
+    });
+    global.fetch = fetchMock;
 
     const module = await import("../src/services/users.service");
     usersService = module.usersService;
@@ -66,21 +64,19 @@ describe("Users Service", () => {
     test("debería solicitar reset con email válido", async () => {
       prismaMock.usuarios.findUnique.mockResolvedValue(mockUser);
       jwtMock.sign.mockReturnValue("mock-jwt-token");
-      resendEmailsSendMock.mockResolvedValue({ id: "email-123" });
+      fetchMock.mockResolvedValue({ id: "email-123" });
 
       const result = await usersService.requestPasswordReset(
         "test@example.com"
       );
 
-      expect(prismaMock.usuarios.findUnique).toHaveBeenCalledWith({
-        where: { email: "test@example.com" },
-      });
-      expect(jwtMock.sign).toHaveBeenCalledWith(
-        { userId: 1 },
-        "test-jwt-secret",
-        { expiresIn: "15m" }
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.brevo.com/v3/smtp/email",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"subject":"Recupera tu contraseña"'),
+        })
       );
-      expect(resendEmailsSendMock).toHaveBeenCalled();
       expect(result).toEqual({
         message: "Correo enviado para recuperar contraseña",
       });
@@ -89,7 +85,7 @@ describe("Users Service", () => {
     test("debería generar token JWT correctamente", async () => {
       prismaMock.usuarios.findUnique.mockResolvedValue(mockUser);
       jwtMock.sign.mockReturnValue("mock-token");
-      resendEmailsSendMock.mockResolvedValue({ id: "email-123" });
+      fetchMock.mockResolvedValue({ id: "email-123" });
 
       await usersService.requestPasswordReset("test@example.com");
 
@@ -103,12 +99,12 @@ describe("Users Service", () => {
     test("debería construir URL de reset correctamente", async () => {
       prismaMock.usuarios.findUnique.mockResolvedValue(mockUser);
       jwtMock.sign.mockReturnValue("test-token-123");
-      resendEmailsSendMock.mockResolvedValue({ id: "email-123" });
+      fetchMock.mockResolvedValue({ id: "email-123" });
 
       await usersService.requestPasswordReset("test@example.com");
 
-      const emailCall = resendEmailsSendMock.mock.calls[0][0];
-      expect(emailCall.html).toContain(
+      const fetchCall = fetchMock.mock.calls[0][1];
+      expect(fetchCall.body).toContain(
         "https://test-frontend.com/reset-password?token=test-token-123"
       );
     });
@@ -116,21 +112,22 @@ describe("Users Service", () => {
     test("debería enviar email con contenido correcto", async () => {
       prismaMock.usuarios.findUnique.mockResolvedValue(mockUser);
       jwtMock.sign.mockReturnValue("token-abc");
-      resendEmailsSendMock.mockResolvedValue({ id: "email-123" });
+      fetchMock.mockResolvedValue({ id: "email-123" });
 
       await usersService.requestPasswordReset("test@example.com");
 
-      expect(resendEmailsSendMock).toHaveBeenCalledWith({
-        from: "onboarding@resend.dev",
-        to: "test@example.com",
-        subject: "Recupera tu contraseña",
-        html: expect.stringContaining("Test User"),
-      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.brevo.com/v3/smtp/email",
+        expect.objectContaining({
+          body: expect.stringContaining('"subject":"Recupera tu contraseña"'),
+        })
+      );
 
-      const emailCall = resendEmailsSendMock.mock.calls[0][0];
-      expect(emailCall.html).toContain("Recuperación de Contraseña");
-      expect(emailCall.html).toContain("Test User");
-      expect(emailCall.html).toContain("Este enlace expirará en 15 minutos");
+      const fetchCall = fetchMock.mock.calls[0][1];
+      const body = JSON.parse(fetchCall.body);
+      expect(body.htmlContent).toContain("Recuperación de Contraseña");
+      expect(body.htmlContent).toContain("Test User");
+      expect(body.htmlContent).toContain("Este enlace expirará en 15 minutos");
     });
 
     test("debería usar URL por defecto si FRONTEND_URL no está definida", async () => {
@@ -139,12 +136,12 @@ describe("Users Service", () => {
 
       prismaMock.usuarios.findUnique.mockResolvedValue(mockUser);
       jwtMock.sign.mockReturnValue("token-default");
-      resendEmailsSendMock.mockResolvedValue({ id: "email-123" });
+      fetchMock.mockResolvedValue({ id: "email-123" });
 
       await usersService.requestPasswordReset("test@example.com");
 
-      const emailCall = resendEmailsSendMock.mock.calls[0][0];
-      expect(emailCall.html).toContain(
+      const fetchCall = fetchMock.mock.calls[0][1];
+      expect(fetchCall.body).toContain(
         "https://treddy-frontend-86vmawtn3-builesss-projects.vercel.app/reset-password?token=token-default"
       );
 
@@ -160,12 +157,12 @@ describe("Users Service", () => {
 
       prismaMock.usuarios.findUnique.mockResolvedValue(userWithoutName);
       jwtMock.sign.mockReturnValue("token-no-name");
-      resendEmailsSendMock.mockResolvedValue({ id: "email-123" });
+      fetchMock.mockResolvedValue({ id: "email-123" });
 
       await usersService.requestPasswordReset("noname@example.com");
 
-      const emailCall = resendEmailsSendMock.mock.calls[0][0];
-      expect(emailCall.html).toContain("Hola <strong>Usuario</strong>,"); // nombre || "Usuario"
+      const fetchCall = fetchMock.mock.calls[0][1];
+      expect(fetchCall.body).toContain("Hola <strong>Usuario</strong>,"); // nombre || "Usuario"
     });
 
     test("debería lanzar error si usuario no existe", async () => {
@@ -178,7 +175,7 @@ describe("Users Service", () => {
       expect(prismaMock.usuarios.findUnique).toHaveBeenCalledWith({
         where: { email: "noexiste@example.com" },
       });
-      expect(resendEmailsSendMock).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 

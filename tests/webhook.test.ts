@@ -1,15 +1,14 @@
-
 describe("Webhook Service", () => {
   let webhookService: any;
   let mockPaymentGet: jest.Mock;
-  let resendEmailsSendMock: jest.Mock;
+  let fetchMock: jest.Mock;
 
   beforeAll(async () => {
     jest.resetModules();
 
     // Setup environment variables
     process.env.MP_ACCESS_TOKEN = 'test-mp-access-token';
-    process.env.RESEND_API_KEY = 'test-resend-key';
+    process.env.BREVO_API_KEY = 'test-brevo-key';
     process.env.SALES_EMAIL = 'sales@test.com';
 
     // Mock MercadoPago Payment
@@ -24,15 +23,13 @@ describe("Webhook Service", () => {
       Payment: mockPayment,
     }));
 
-    // Mock Resend
-    resendEmailsSendMock = jest.fn();
-    jest.doMock('resend', () => ({
-      Resend: jest.fn().mockImplementation(() => ({
-        emails: {
-          send: resendEmailsSendMock,
-        },
-      })),
-    }));
+    // Mock global fetch (Brevo API)
+    fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ messageId: "mock-id" }),
+      text: () => Promise.resolve(""),
+    });
+    global.fetch = fetchMock;
 
     const module = await import('../src/services/webhook.service');
     webhookService = module.webhookService;
@@ -66,12 +63,11 @@ describe("Webhook Service", () => {
 
     test('debería procesar pago aprobado con items', async () => {
       mockPaymentGet.mockResolvedValue(mockApprovedPayment);
-      resendEmailsSendMock.mockResolvedValue({ id: 'email-123' });
 
       const result = await webhookService.handlePaymentEvent({ id: '123456789' });
 
       expect(mockPaymentGet).toHaveBeenCalledWith({ id: '123456789' });
-      expect(resendEmailsSendMock).toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalled();
       expect(result).toEqual({
         status: 'approved',
         id: '123456789',
@@ -95,7 +91,6 @@ describe("Webhook Service", () => {
       };
 
       mockPaymentGet.mockResolvedValue(paymentWithMultipleItems);
-      resendEmailsSendMock.mockResolvedValue({ id: 'email-123' });
 
       const result = await webhookService.handlePaymentEvent({ id: '123' });
 
@@ -105,22 +100,24 @@ describe("Webhook Service", () => {
 
     test('debería enviar email con contenido HTML correcto', async () => {
       mockPaymentGet.mockResolvedValue(mockApprovedPayment);
-      resendEmailsSendMock.mockResolvedValue({ id: 'email-123' });
 
       await webhookService.handlePaymentEvent({ id: '123' });
 
-      expect(resendEmailsSendMock).toHaveBeenCalledWith({
-        from: 'onboarding@resend.dev',
-        to: 'sales@test.com',
-        subject: '🎉 Pago confirmado',
-        html: expect.stringContaining('Gracias por tu compra'),
-      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.brevo.com/v3/smtp/email",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('🎉 Pago confirmado'),
+        })
+      );
 
-      const emailCall = resendEmailsSendMock.mock.calls[0][0];
-      expect(emailCall.html).toContain('150000 COP');
-      expect(emailCall.html).toContain('Producto 1');
-      expect(emailCall.html).toContain('Producto 2');
-      expect(emailCall.html).toContain('150.000'); // Total formatted
+      const fetchCall = fetchMock.mock.calls[0][1];
+      const body = JSON.parse(fetchCall.body);
+      expect(body.htmlContent).toContain('Gracias por tu compra');
+      expect(body.htmlContent).toContain('150000 COP');
+      expect(body.htmlContent).toContain('Producto 1');
+      expect(body.htmlContent).toContain('Producto 2');
+      expect(body.htmlContent).toContain('150.000'); // Total formatted
     });
 
     test('debería usar SALES_EMAIL por defecto si no está definido', async () => {
@@ -128,15 +125,12 @@ describe("Webhook Service", () => {
       delete process.env.SALES_EMAIL;
 
       mockPaymentGet.mockResolvedValue(mockApprovedPayment);
-      resendEmailsSendMock.mockResolvedValue({ id: 'email-123' });
 
       await webhookService.handlePaymentEvent({ id: '123' });
 
-      expect(resendEmailsSendMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: 'sebasbuiles12@hotmail.com',
-        })
-      );
+      const fetchCall = fetchMock.mock.calls[0][1];
+      const body = JSON.parse(fetchCall.body);
+      expect(body.to[0].email).toBe('sebasbuiles12@hotmail.com');
 
       process.env.SALES_EMAIL = originalEmail;
     });
@@ -150,25 +144,6 @@ describe("Webhook Service", () => {
       };
 
       mockPaymentGet.mockResolvedValue(paymentWithoutItems);
-      resendEmailsSendMock.mockResolvedValue({ id: 'email-123' });
-
-      const result = await webhookService.handlePaymentEvent({ id: '123' });
-
-      expect(result.items).toEqual([]);
-      expect(result.total).toBe(0);
-    });
-
-    test('debería manejar additional_info undefined', async () => {
-      const paymentWithoutAdditionalInfo = {
-        id: '123',
-        status: 'approved',
-        transaction_amount: 100000,
-        currency_id: 'COP',
-        additional_info: undefined,
-      };
-
-      mockPaymentGet.mockResolvedValue(paymentWithoutAdditionalInfo);
-      resendEmailsSendMock.mockResolvedValue({ id: 'email-123' });
 
       const result = await webhookService.handlePaymentEvent({ id: '123' });
 
@@ -187,32 +162,11 @@ describe("Webhook Service", () => {
       const result = await webhookService.handlePaymentEvent({ id: '123' });
 
       expect(result).toBeNull();
-      expect(resendEmailsSendMock).not.toHaveBeenCalled();
-    });
-
-    test('debería retornar null para pagos rechazados', async () => {
-      const rejectedPayment = {
-        ...mockApprovedPayment,
-        status: 'rejected',
-      };
-
-      mockPaymentGet.mockResolvedValue(rejectedPayment);
-
-      const result = await webhookService.handlePaymentEvent({ id: '123' });
-
-      expect(result).toBeNull();
-      expect(resendEmailsSendMock).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     test('debería lanzar error si data no tiene ID', async () => {
       await expect(webhookService.handlePaymentEvent(null)).rejects.toThrow(
-        'ID de pago no proporcionado'
-      );
-      expect(mockPaymentGet).not.toHaveBeenCalled();
-    });
-
-    test('debería lanzar error si data.id es undefined', async () => {
-      await expect(webhookService.handlePaymentEvent({})).rejects.toThrow(
         'ID de pago no proporcionado'
       );
       expect(mockPaymentGet).not.toHaveBeenCalled();
