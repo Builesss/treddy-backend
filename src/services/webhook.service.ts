@@ -47,7 +47,7 @@ export const webhookService = {
             data: {
               usuario_id: BigInt(userId),
               total: payment.transaction_amount || total,
-              medio_pago: "mercadopago", 
+              medio_pago: "tarjeta", 
               estado: "pendiente", 
             },
           });
