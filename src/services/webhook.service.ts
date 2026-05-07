@@ -35,7 +35,7 @@ export const webhookService = {
     const codigoPedido = payment.metadata?.codigo_pedido || payment.external_reference;
     let dbUser: any = null;
     
-    const isNewFlow = codigoPedido && typeof codigoPedido === 'string' && codigoPedido.startsWith("#ORD-");
+    const isNewFlow = codigoPedido && typeof codigoPedido === 'string' && codigoPedido.startsWith("ORD-");
 
     if (isNewFlow) {
       console.log(`📝 Actualizando pedido temporal: ${codigoPedido}`);
@@ -48,7 +48,12 @@ export const webhookService = {
           if (pedidoTemporal) {
             await tx.pedidos.update({
               where: { pedido_id: pedidoTemporal.pedido_id },
-              data: { estado: "pagado", pago_aprobado: true }
+              data: { 
+                estado: "pagado", 
+                pago_aprobado: true,
+                medio_pago: "tarjeta",
+                updated_at: new Date()
+              }
             });
 
             dbUser = await tx.usuarios.findUnique({

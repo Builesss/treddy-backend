@@ -31,7 +31,7 @@ export const checkoutController = {
 
       const year = new Date().getFullYear();
       const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const codigo_pedido = `#ORD-${year}-${randomStr}`;
+      const codigo_pedido = `ORD-${year}-${randomStr}`;
 
       let nuevoPedido: any = null;
       
@@ -67,7 +67,9 @@ export const checkoutController = {
         items,
         userId,
         sessionId,
-        codigo_pedido // Pasar el código temporal
+        codigo_pedido,
+        impuestos,
+        costo_envio
       );
 
       res.status(201).json({

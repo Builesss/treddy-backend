@@ -7,7 +7,7 @@ const client = new MercadoPagoConfig({
 const preference = new Preference(client);
 
 export const paymentService = {
-  async createPreference(items: any[], userId?: string, sessionId?: string, codigo_pedido?: string) {
+  async createPreference(items: any[], userId?: string, sessionId?: string, codigo_pedido?: string, impuestos: number = 0, costo_envio: number = 0) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("La lista de items es obligatoria");
     }
@@ -15,16 +15,41 @@ export const paymentService = {
     const frontendUrl = process.env.FRONTEND_URL || "https://treddy-frontend.vercel.app";
     const backendUrl = process.env.BACKEND_URL || "https://treddy-backend.onrender.com";
 
+    // Mapear items de productos
+    const mpItems = items.map((item) => ({
+      id: String(item.id),
+      title: item.title,
+      quantity: Number(item.quantity),
+      currency_id: "COP",
+      unit_price: Number(item.unit_price),
+    }));
+
+    // Agregar Impuestos como un item
+    if (impuestos > 0) {
+      mpItems.push({
+        id: "TAX",
+        title: "Impuestos (IVA 19%)",
+        quantity: 1,
+        currency_id: "COP",
+        unit_price: Number(impuestos),
+      });
+    }
+
+    // Agregar Envío como un item
+    if (costo_envio > 0) {
+      mpItems.push({
+        id: "SHIPPING",
+        title: "Costo de Envío",
+        quantity: 1,
+        currency_id: "COP",
+        unit_price: Number(costo_envio),
+      });
+    }
+
     const preferenceData = {
-      items: items.map((item) => ({
-        id: String(item.id),
-        title: item.title,
-        quantity: Number(item.quantity),
-        currency_id: item.currency_id || "COP",
-        unit_price: Number(item.unit_price),
-      })),
+      items: mpItems,
       payer: {
-        email: items[0]?.payer_email, // Opcional, si viene en los items
+        email: items[0]?.payer_email, 
       },
       back_urls: {
         success: `${frontendUrl}/success`,
