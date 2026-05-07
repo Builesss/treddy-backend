@@ -25,11 +25,10 @@ export const checkoutController = {
 
       // Calcular totales
       const subtotal = items.reduce((acc: number, item: any) => acc + Number(item.unit_price) * Number(item.quantity), 0);
-      const impuestos = subtotal * 0.19; // 19% IVA ejemplo
-      const costo_envio = 10000; // Fijo por ahora, podría depender de la zona
+      const impuestos = subtotal * 0.19;
+      const costo_envio = 10000; 
       const total = subtotal + impuestos + costo_envio;
 
-      // Generar código de referencia temporal
       const year = new Date().getFullYear();
       const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
       const codigo_pedido = `#ORD-${year}-${randomStr}`;
@@ -47,8 +46,8 @@ export const checkoutController = {
             impuestos,
             costo_envio,
             total,
-            medio_pago: "mercadopago",
-            estado: "temporal",
+            medio_pago: "tarjeta",
+            estado: "pendiente",
           }
         });
 
