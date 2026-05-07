@@ -101,12 +101,35 @@ model pedidos {
   total            Decimal            @db.Decimal(10, 2)
   created_at       DateTime           @default(now()) @db.Timestamp(6)
   updated_at       DateTime           @default(now()) @db.Timestamp(6)
+  codigo_pedido    String?            @unique @db.VarChar(50)
+  costo_envio      Decimal?           @db.Decimal(10, 2)
+  direccion_id     BigInt?
+  impuestos        Decimal?           @db.Decimal(10, 2)
+  pago_aprobado    Boolean            @default(false)
+  subtotal         Decimal?           @db.Decimal(10, 2)
   detallepedido    detallepedido[]
   envios           envios[]
   historialpedidos historialpedidos[]
   usuarios         usuarios           @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_usuarios")
+  direcciones      direcciones?       @relation(fields: [direccion_id], references: [id], map: "fk_pedidos_direcciones")
 
   @@index([usuario_id, estado], map: "idx_pedido_usuario_estado")
+}
+
+model direcciones {
+  id            BigInt    @id @default(autoincrement())
+  usuario_id    BigInt
+  alias         String?   @db.VarChar(50)
+  calle         String    @db.VarChar(150)
+  numero        String    @db.VarChar(50)
+  ciudad        String    @db.VarChar(100)
+  departamento  String    @db.VarChar(100)
+  codigo_postal String    @db.VarChar(20)
+  principal     Boolean   @default(false)
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @db.Timestamp(6)
+  usuarios      usuarios  @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "fk_direcciones_usuarios")
+  pedidos       pedidos[]
 }
 
 model personalizaciones {
@@ -158,6 +181,7 @@ model usuarios {
   updated_at         DateTime             @default(now()) @db.Timestamp(6)
   estado             String               @default("Pendiente") @db.VarChar(20)
   auditoria          auditoria[]
+  direcciones        direcciones[]
   envios             envios[]
   historialpedidos   historialpedidos[]
   historialproductos historialproductos[]

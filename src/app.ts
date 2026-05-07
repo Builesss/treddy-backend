@@ -16,6 +16,8 @@ import userRoutes from "./routes/users.routes";
 import cartRoutes from "./routes/cart.routes";
 import gcsRoutes from "./routes/gcs.routes";
 import resenasRoutes from "./routes/resenas.routes";
+import addressRoutes from "./routes/address.routes";
+import checkoutRoutes from "./routes/checkout.routes";
 import { setupSwagger } from "./swagger";
 
 const app = express();
@@ -74,6 +76,8 @@ app.use('/api/user', userRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/gcs', gcsRoutes);
 app.use('/api/resenas', resenasRoutes);
+app.use('/api/address', addressRoutes);
+app.use('/api/checkout', checkoutRoutes);
 app.use('/', redirectRoutes);
 
 export default app;

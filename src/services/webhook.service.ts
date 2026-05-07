@@ -30,25 +30,71 @@ export const webhookService = {
     );
 
     // Persistencia en base de datos
-    const userId = payment.metadata?.user_id || payment.external_reference;
+    const userId = payment.metadata?.user_id;
+    const sessionId = payment.metadata?.session_id;
+    const codigoPedido = payment.metadata?.codigo_pedido || payment.external_reference;
     let dbUser: any = null;
     
-    if (userId) {
-      console.log(`📝 Procesando pedido para el usuario ID: ${userId}`);
+    const isNewFlow = codigoPedido && typeof codigoPedido === 'string' && codigoPedido.startsWith("#ORD-");
+
+    if (isNewFlow) {
+      console.log(`📝 Actualizando pedido temporal: ${codigoPedido}`);
+      try {
+        await prisma.$transaction(async (tx) => {
+          const pedidoTemporal = await tx.pedidos.findUnique({
+            where: { codigo_pedido: codigoPedido }
+          });
+
+          if (pedidoTemporal) {
+            await tx.pedidos.update({
+              where: { pedido_id: pedidoTemporal.pedido_id },
+              data: { estado: "pagado", pago_aprobado: true }
+            });
+
+            dbUser = await tx.usuarios.findUnique({
+              where: { usuario_id: pedidoTemporal.usuario_id }
+            });
+
+            // Limpiar el carrito
+            let carrito = await tx.carrito.findUnique({
+              where: { user_id: pedidoTemporal.usuario_id }
+            });
+
+            if (!carrito && sessionId) {
+              carrito = await tx.carrito.findUnique({
+                where: { session_id: sessionId }
+              });
+            }
+
+            if (carrito) {
+              await tx.carrito_item.deleteMany({
+                where: { carrito_id: carrito.id }
+              });
+              console.log(`✅ Pedido ${pedidoTemporal.pedido_id} actualizado y carrito ${carrito.id} limpiado.`);
+            }
+          }
+        });
+      } catch (dbError) {
+        console.error("❌ Error al actualizar el pedido temporal en la base de datos:", dbError);
+      }
+    } else if (userId || payment.external_reference) {
+      const fallbackUserId = userId || payment.external_reference;
+      console.log(`📝 Procesando pedido (Flujo antiguo) para el usuario ID: ${fallbackUserId}`);
       try {
         await prisma.$transaction(async (tx) => {
           // 0. Obtener el usuario de la DB
           dbUser = await tx.usuarios.findUnique({
-            where: { usuario_id: BigInt(userId) }
+            where: { usuario_id: BigInt(fallbackUserId) }
           });
 
           // 1. Crear el pedido
           const nuevoPedido = await tx.pedidos.create({
             data: {
-              usuario_id: BigInt(userId),
+              usuario_id: BigInt(fallbackUserId),
               total: payment.transaction_amount || total,
               medio_pago: "tarjeta", 
-              estado: "pendiente", 
+              estado: "pagado",
+              pago_aprobado: true
             },
           });
 
@@ -64,14 +110,11 @@ export const webhookService = {
             });
           }
 
-          // 3. Limpiar el carrito (por userId o por sessionId)
-          const sessionId = payment.metadata?.session_id;
-          
+          // 3. Limpiar el carrito
           let carrito = await tx.carrito.findUnique({
-            where: { user_id: BigInt(userId) }
+            where: { user_id: BigInt(fallbackUserId) }
           });
 
-          // Si no se encuentra por userId, intentar por sessionId
           if (!carrito && sessionId) {
             carrito = await tx.carrito.findUnique({
               where: { session_id: sessionId }
@@ -83,8 +126,6 @@ export const webhookService = {
               where: { carrito_id: carrito.id }
             });
             console.log(`✅ Pedido ${nuevoPedido.pedido_id} creado y carrito ${carrito.id} limpiado.`);
-          } else {
-            console.warn(`⚠️ No se encontró carrito para limpiar (UserId: ${userId}, SessionId: ${sessionId})`);
           }
         });
       } catch (dbError) {
