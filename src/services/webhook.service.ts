@@ -46,25 +46,31 @@ export const webhookService = {
           });
 
           if (pedidoTemporal) {
+            // Actualizar estado a 'en_producción' (valor permitido por el CHECK constraint)
             await tx.pedidos.update({
               where: { pedido_id: pedidoTemporal.pedido_id },
               data: { 
-                estado: "pagado", 
+                estado: "en_producción", 
                 pago_aprobado: true,
                 medio_pago: "tarjeta",
                 updated_at: new Date()
               }
             });
 
+            // Obtener el usuario para el correo
             dbUser = await tx.usuarios.findUnique({
               where: { usuario_id: pedidoTemporal.usuario_id }
             });
 
-            // Limpiar el carrito
+            // Limpiar el carrito (Priorizar el usuario del pedido)
+            const targetUserId = pedidoTemporal.usuario_id;
+            
+            // Buscar carrito por usuario
             let carrito = await tx.carrito.findUnique({
-              where: { user_id: pedidoTemporal.usuario_id }
+              where: { user_id: targetUserId }
             });
 
+            // Si no hay carrito por usuario, intentar por session_id si viene en metadata
             if (!carrito && sessionId) {
               carrito = await tx.carrito.findUnique({
                 where: { session_id: sessionId }
@@ -77,6 +83,8 @@ export const webhookService = {
               });
               console.log(`✅ Pedido ${pedidoTemporal.pedido_id} actualizado y carrito ${carrito.id} limpiado.`);
             }
+          } else {
+            console.warn(`⚠️ No se encontró el pedido temporal con código: ${codigoPedido}`);
           }
         });
       } catch (dbError) {
@@ -92,13 +100,13 @@ export const webhookService = {
             where: { usuario_id: BigInt(fallbackUserId) }
           });
 
-          // 1. Crear el pedido
+          // 1. Crear el pedido con estado permitido
           const nuevoPedido = await tx.pedidos.create({
             data: {
               usuario_id: BigInt(fallbackUserId),
               total: payment.transaction_amount || total,
               medio_pago: "tarjeta", 
-              estado: "pagado",
+              estado: "en_producción",
               pago_aprobado: true
             },
           });
