@@ -110,7 +110,7 @@ export const orderController = {
             estado: "cancelado",
             medio_pago: pedido.medio_pago,
             total: pedido.total,
-            accion: "cancelación",
+            accion: "modificar",
             usuario_id: userId,
           },
         });
@@ -121,7 +121,7 @@ export const orderController = {
             usuario_id: userId,
             tabla_afectada: "pedidos",
             registro_id: pedidoId,
-            accion: "cancelación",
+            accion: "modificar",
             datos_antes: { estado: pedido.estado },
             datos_despues: { estado: "cancelado", motivo },
             descripcion_cambio: `Pedido cancelado por el cliente. Motivo: ${motivo}`,
