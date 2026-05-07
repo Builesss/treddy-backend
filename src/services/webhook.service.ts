@@ -1,5 +1,8 @@
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { sendEmail } from "./email.service";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN as string,
@@ -15,6 +18,7 @@ export const webhookService = {
     const payment = await paymentClient.get({ id: data.id.toString() });
     
     console.log(`💳 Pago ${data.id} - Estado: ${payment.status} - Detalle: ${payment.status_detail}`);
+    console.log(`👤 Payer Object:`, JSON.stringify(payment.payer, null, 2));
 
     if (payment.status !== "approved") {
       console.log(`ℹ️ El pago ${data.id} no se procesará porque su estado es ${payment.status}`);
@@ -28,7 +32,61 @@ export const webhookService = {
     );
 
     const customerEmail = payment.payer?.email;
-    const salesEmail = process.env.SALES_EMAIL || "sebasbuiles12@hotmail.com";
+    const salesEmail = process.env.SALES_EMAIL || "admintreddy@gmail.com";
+    
+    console.log(`📧 Email final detectado para el cliente: ${customerEmail}`);
+
+    // Persistencia en base de datos
+    const userId = payment.metadata?.user_id || payment.external_reference;
+    
+    if (userId) {
+      console.log(`📝 Procesando pedido para el usuario ID: ${userId}`);
+      try {
+        await prisma.$transaction(async (tx) => {
+          // 1. Crear el pedido
+          const nuevoPedido = await tx.pedidos.create({
+            data: {
+              usuario_id: BigInt(userId),
+              total: payment.transaction_amount || total,
+              medio_pago: payment.payment_method_id || "mercadopago",
+              estado: "pagado",
+            },
+          });
+
+          console.log(`✅ Pedido creado: ${nuevoPedido.pedido_id}`);
+
+          // 2. Crear los detalles del pedido
+          if (items.length > 0) {
+            await tx.detallepedido.createMany({
+              data: items.map((item: any) => ({
+                pedido_id: nuevoPedido.pedido_id,
+                producto_id: BigInt(item.id),
+                cantidad: Number(item.quantity),
+                subtotal: Number(item.unit_price) * Number(item.quantity),
+              })),
+            });
+            console.log(`✅ Detalles del pedido insertados`);
+          }
+
+          // 3. Limpiar el carrito del usuario
+          const carrito = await tx.carrito.findUnique({
+            where: { user_id: BigInt(userId) }
+          });
+
+          if (carrito) {
+            await tx.carrito_item.deleteMany({
+              where: { carrito_id: carrito.id }
+            });
+            console.log(`🛒 Carrito limpiado para el usuario ${userId}`);
+          }
+        });
+      } catch (dbError) {
+        console.error("❌ Error al persistir el pedido en la base de datos:", dbError);
+        // No lanzamos el error para que al menos se intente enviar el email
+      }
+    } else {
+      console.warn("⚠️ No se encontró userId en los metadatos del pago. No se pudo crear el pedido en la DB.");
+    }
 
     const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
@@ -78,8 +136,6 @@ export const webhookService = {
       } catch (err) {
         console.error(`❌ Error enviando email al cliente (${customerEmail}):`, err);
       }
-    } else {
-      console.warn("⚠️ No se encontró el email del pagador en los datos de Mercado Pago.");
     }
 
     // Enviar a ventas

@@ -7,7 +7,7 @@ const client = new MercadoPagoConfig({
 const preference = new Preference(client);
 
 export const paymentService = {
-  async createPreference(items: any[]) {
+  async createPreference(items: any[], userId?: string) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("La lista de items es obligatoria");
     }
@@ -23,6 +23,9 @@ export const paymentService = {
         currency_id: item.currency_id || "COP",
         unit_price: Number(item.unit_price),
       })),
+      payer: {
+        email: items[0]?.payer_email, // Opcional, si viene en los items
+      },
       back_urls: {
         success: `${frontendUrl}/success`,
         failure: `${frontendUrl}/success?status=failure`,
@@ -31,6 +34,10 @@ export const paymentService = {
       auto_return: "approved" as const,
       notification_url: `${backendUrl}/api/payment/webhook`,
       statement_descriptor: "TREDDY",
+      external_reference: userId ? String(userId) : undefined,
+      metadata: {
+        user_id: userId,
+      },
     };
 
     const response = await preference.create({ body: preferenceData });
