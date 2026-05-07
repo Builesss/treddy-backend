@@ -31,25 +31,31 @@ export const webhookService = {
       0
     );
 
-    const customerEmail = payment.payer?.email;
-    const salesEmail = process.env.SALES_EMAIL || "admintreddy@gmail.com";
-    
-    console.log(`📧 Email final detectado para el cliente: ${customerEmail}`);
-
     // Persistencia en base de datos
     const userId = payment.metadata?.user_id || payment.external_reference;
+    let dbUser: any = null;
     
     if (userId) {
       console.log(`📝 Procesando pedido para el usuario ID: ${userId}`);
       try {
         await prisma.$transaction(async (tx) => {
+          // 0. Obtener el usuario de la DB para asegurar que existe y tener su email real
+          dbUser = await tx.usuarios.findUnique({
+            where: { usuario_id: BigInt(userId) }
+          });
+
+          if (!dbUser) {
+            console.warn(`⚠️ Usuario ${userId} no encontrado en la base de datos.`);
+          }
+
           // 1. Crear el pedido
+          // Usamos 'pendiente' porque parece ser el único permitido por el check constraint actual
           const nuevoPedido = await tx.pedidos.create({
             data: {
               usuario_id: BigInt(userId),
               total: payment.transaction_amount || total,
               medio_pago: payment.payment_method_id || "mercadopago",
-              estado: "pagado",
+              estado: "pendiente", 
             },
           });
 
@@ -82,11 +88,16 @@ export const webhookService = {
         });
       } catch (dbError) {
         console.error("❌ Error al persistir el pedido en la base de datos:", dbError);
-        // No lanzamos el error para que al menos se intente enviar el email
       }
     } else {
       console.warn("⚠️ No se encontró userId en los metadatos del pago. No se pudo crear el pedido en la DB.");
     }
+
+    // Usar el email de la base de datos si está disponible, de lo contrario el de Mercado Pago
+    const customerEmail = dbUser?.email || payment.payer?.email;
+    const salesEmail = process.env.SALES_EMAIL || "admintreddy@gmail.com";
+    
+    console.log(`📧 Email final detectado para el cliente: ${customerEmail}`);
 
     const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
