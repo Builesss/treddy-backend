@@ -64,16 +64,27 @@ export const webhookService = {
             });
           }
 
-          // 3. Limpiar el carrito del usuario
-          const carrito = await tx.carrito.findUnique({
+          // 3. Limpiar el carrito (por userId o por sessionId)
+          const sessionId = payment.metadata?.session_id;
+          
+          let carrito = await tx.carrito.findUnique({
             where: { user_id: BigInt(userId) }
           });
+
+          // Si no se encuentra por userId, intentar por sessionId
+          if (!carrito && sessionId) {
+            carrito = await tx.carrito.findUnique({
+              where: { session_id: sessionId }
+            });
+          }
 
           if (carrito) {
             await tx.carrito_item.deleteMany({
               where: { carrito_id: carrito.id }
             });
-            console.log(`✅ Pedido ${nuevoPedido.pedido_id} creado y carrito limpiado.`);
+            console.log(`✅ Pedido ${nuevoPedido.pedido_id} creado y carrito ${carrito.id} limpiado.`);
+          } else {
+            console.warn(`⚠️ No se encontró carrito para limpiar (UserId: ${userId}, SessionId: ${sessionId})`);
           }
         });
       } catch (dbError) {

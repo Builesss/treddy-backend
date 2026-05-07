@@ -9,11 +9,11 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
     throw new Error("Debes enviar userId o sessionId");
   }
 
+  // Si tenemos userId, intentamos asegurar que el carrito esté vinculado
   if (userId) {
-    const existing = await prisma.carrito.findUnique({
+    const userCart = await prisma.carrito.findUnique({
       where: { user_id: userId },
     });
-    if (existing) return existing;
 
     if (sessionId) {
       const sessionCart = await prisma.carrito.findUnique({
@@ -22,39 +22,47 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
       });
 
       if (sessionCart) {
-        const merged = await prisma.$transaction(async (tx: any) => {
-          const userCart = await tx.carrito.create({
-            data: { user_id: userId },
-          });
-
-          for (const it of sessionCart.carrito_item) {
-            await tx.carrito_item.upsert({
-              where: {
-                carrito_id_producto_id: {
-                  carrito_id: userCart.id,
-                  producto_id: it.producto_id,
-                },
-              },
-              create: {
-                carrito_id: userCart.id,
-                producto_id: it.producto_id,
-                cantidad: it.cantidad ?? 1,
-                precio_unitario: it.precio_unitario,
-              },
-              update: { cantidad: { increment: it.cantidad ?? 1 } },
+        // Caso A: Existe un carrito de usuario y uno de sesión -> Fusionar
+        if (userCart) {
+          if (userCart.id !== sessionCart.id) {
+            await prisma.$transaction(async (tx: any) => {
+              for (const it of sessionCart.carrito_item) {
+                await tx.carrito_item.upsert({
+                  where: {
+                    carrito_id_producto_id: {
+                      carrito_id: userCart.id,
+                      producto_id: it.producto_id,
+                    },
+                  },
+                  create: {
+                    carrito_id: userCart.id,
+                    producto_id: it.producto_id,
+                    cantidad: it.cantidad ?? 1,
+                    precio_unitario: it.precio_unitario,
+                  },
+                  update: { cantidad: { increment: it.cantidad ?? 1 } },
+                });
+              }
+              await tx.carrito.delete({ where: { id: sessionCart.id } });
             });
           }
-
-          await tx.carrito.delete({ where: { id: sessionCart.id } });
           return userCart;
+        } 
+        
+        // Caso B: No existe carrito de usuario pero sí de sesión -> Vincular sesión al usuario
+        return prisma.carrito.update({
+          where: { id: sessionCart.id },
+          data: { user_id: userId, session_id: null }, // Limpiamos session_id al vincular
         });
-        return merged;
       }
     }
 
+    // Caso C: Solo tenemos userId (o no había sesión que vincular)
+    if (userCart) return userCart;
     return prisma.carrito.create({ data: { user_id: userId } });
   }
 
+  // Si solo tenemos sessionId
   const existingBySession = await prisma.carrito.findUnique({
     where: { session_id: sessionId! },
   });
