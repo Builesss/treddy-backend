@@ -14,11 +14,9 @@ export const webhookService = {
   async handlePaymentEvent(data: any) {
     if (!data?.id) throw new Error("ID de pago no proporcionado");
 
-    console.log(`🔍 Obteniendo detalles del pago: ${data.id}`);
     const payment = await paymentClient.get({ id: data.id.toString() });
     
     console.log(`💳 Pago ${data.id} - Estado: ${payment.status} - Detalle: ${payment.status_detail}`);
-    console.log(`👤 Payer Object:`, JSON.stringify(payment.payer, null, 2));
 
     if (payment.status !== "approved") {
       console.log(`ℹ️ El pago ${data.id} no se procesará porque su estado es ${payment.status}`);
@@ -39,27 +37,20 @@ export const webhookService = {
       console.log(`📝 Procesando pedido para el usuario ID: ${userId}`);
       try {
         await prisma.$transaction(async (tx) => {
-          // 0. Obtener el usuario de la DB para asegurar que existe y tener su email real
+          // 0. Obtener el usuario de la DB
           dbUser = await tx.usuarios.findUnique({
             where: { usuario_id: BigInt(userId) }
           });
 
-          if (!dbUser) {
-            console.warn(`⚠️ Usuario ${userId} no encontrado en la base de datos.`);
-          }
-
           // 1. Crear el pedido
-          // Usamos 'pendiente' porque parece ser el único permitido por el check constraint actual
           const nuevoPedido = await tx.pedidos.create({
             data: {
               usuario_id: BigInt(userId),
               total: payment.transaction_amount || total,
-              medio_pago: payment.payment_method_id || "mercadopago",
+              medio_pago: "mercadopago", 
               estado: "pendiente", 
             },
           });
-
-          console.log(`✅ Pedido creado: ${nuevoPedido.pedido_id}`);
 
           // 2. Crear los detalles del pedido
           if (items.length > 0) {
@@ -71,7 +62,6 @@ export const webhookService = {
                 subtotal: Number(item.unit_price) * Number(item.quantity),
               })),
             });
-            console.log(`✅ Detalles del pedido insertados`);
           }
 
           // 3. Limpiar el carrito del usuario
@@ -83,21 +73,20 @@ export const webhookService = {
             await tx.carrito_item.deleteMany({
               where: { carrito_id: carrito.id }
             });
-            console.log(`🛒 Carrito limpiado para el usuario ${userId}`);
+            console.log(`✅ Pedido ${nuevoPedido.pedido_id} creado y carrito limpiado.`);
           }
         });
       } catch (dbError) {
         console.error("❌ Error al persistir el pedido en la base de datos:", dbError);
       }
-    } else {
-      console.warn("⚠️ No se encontró userId en los metadatos del pago. No se pudo crear el pedido en la DB.");
     }
 
-    // Usar el email de la base de datos si está disponible, de lo contrario el de Mercado Pago
     const customerEmail = dbUser?.email || payment.payer?.email;
     const salesEmail = process.env.SALES_EMAIL || "admintreddy@gmail.com";
     
-    console.log(`📧 Email final detectado para el cliente: ${customerEmail}`);
+    if (customerEmail) {
+      console.log(`📧 Enviando confirmación al cliente: ${customerEmail}`);
+    }
 
     const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
