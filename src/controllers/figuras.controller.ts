@@ -2,18 +2,28 @@ import { Request, Response } from "express";
 import { figurasService } from "../services/figuras.service";
 import { gcsKey, getPublicUrl } from "../lib/gcs";
 
+const mapFiguraConUrls = (f: any) => {
+  const key = f.imagen_path || gcsKey("images/productos", "default.png");
+  const imagenUrl = getPublicUrl(key);
+  const modelo3dUrl = f.modelo_3d_path ? getPublicUrl(f.modelo_3d_path) : undefined;
+  const vistaArUrl = f.vista_ar_path ? getPublicUrl(f.vista_ar_path) : undefined;
+  
+  return { 
+    ...f, 
+    imagenUrl, 
+    modelo3dUrl, 
+    vistaArUrl,
+    // Also override paths with full URLs for frontend convenience if they are just paths
+    modelo_3d_path: modelo3dUrl || f.modelo_3d_path,
+    vista_ar_path: vistaArUrl || f.vista_ar_path,
+    cantidad: 1 
+  };
+};
+
 export const getFiguras = async (req: Request, res: Response): Promise<void> => {
   try {
     const figuras = await figurasService.getAll();
-
-    const figurasConUrl = figuras.map((f) => {
-      const key = f.imagen_path || gcsKey("images/productos", "default.png");
-      const imagenUrl = getPublicUrl(key);
-      const modelo3dUrl = f.modelo_3d_path ? getPublicUrl(f.modelo_3d_path) : undefined;
-      const vistaArUrl = f.vista_ar_path ? getPublicUrl(f.vista_ar_path) : undefined;
-      return { ...f, imagenUrl, modelo3dUrl, vistaArUrl, cantidad: 1 };
-    });
-
+    const figurasConUrl = figuras.map(mapFiguraConUrls);
     res.json(figurasConUrl);
   } catch (error) {
     console.error("Error al obtener las figuras:", error);
@@ -31,17 +41,7 @@ export const getFiguraById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const key = figura.imagen_path || gcsKey("images/productos", "default.png");
-    const imagenUrl = getPublicUrl(key);
-    const modelo3dUrl = figura.modelo_3d_path ? getPublicUrl(figura.modelo_3d_path) : undefined;
-    const vistaArUrl = figura.vista_ar_path ? getPublicUrl(figura.vista_ar_path) : undefined;
-
-    res.json({
-      ...figura,
-      imagenUrl,
-      modelo3dUrl,
-      vistaArUrl,
-    });
+    res.json(mapFiguraConUrls(figura));
   } catch (error) {
     console.error("Error al obtener figura:", error);
     res.status(500).json({ error: "Error al obtener la figura" });
@@ -66,13 +66,7 @@ export const createFigura = async (req: Request, res: Response): Promise<void> =
       categorias,
     });
 
-    const key = nueva.imagen_path || gcsKey("images/productos", "default.png");
-    const url = getPublicUrl(key);
-
-    res.status(201).json({
-      ...nueva,
-      imagenUrl: url,
-    });
+    res.status(201).json(mapFiguraConUrls(nueva));
   } catch (error) {
     console.error("Error al crear figura:", error);
     res.status(500).json({ error: "Error al crear la figura" });
@@ -98,13 +92,7 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const key = figura.imagen_path || gcsKey("images/productos", "default.png");
-    const url = getPublicUrl(key);
-
-    res.json({
-      ...figura,
-      imagenUrl: url,
-    });
+    res.json(mapFiguraConUrls(figura));
   } catch (error) {
     console.error("Error al actualizar figura:", error);
     res.status(500).json({ error: "Error al actualizar la figura" });
