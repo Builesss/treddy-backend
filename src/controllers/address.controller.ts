@@ -108,5 +108,56 @@ export const addressController = {
       console.error("Error estableciendo dirección principal:", error);
       res.status(500).json({ error: "Error interno del servidor" });
     }
+  },
+
+  async updateAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { alias, calle, numero, ciudad, departamento, codigo_postal, principal, latitud, longitud, usuario_id } = req.body;
+
+      if (principal && usuario_id) {
+        await prisma.direcciones.updateMany({
+          where: { usuario_id: BigInt(usuario_id) },
+          data: { principal: false },
+        });
+      }
+
+      const actualizada = await prisma.direcciones.update({
+        where: { id: BigInt(id) },
+        data: {
+          alias,
+          calle,
+          numero,
+          ciudad,
+          departamento,
+          codigo_postal,
+          principal,
+          latitud: latitud ? Number(latitud) : undefined,
+          longitud: longitud ? Number(longitud) : undefined,
+        },
+      });
+
+      res.json({
+        ...actualizada,
+        id: actualizada.id.toString(),
+        usuario_id: actualizada.usuario_id.toString(),
+      });
+    } catch (error) {
+      console.error("Error actualizando dirección:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  },
+
+  async deleteAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      await prisma.direcciones.delete({
+        where: { id: BigInt(id) },
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error eliminando dirección:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
   }
 };
