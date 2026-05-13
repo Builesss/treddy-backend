@@ -36,7 +36,7 @@ export const addressController = {
 
   async createAddress(req: Request, res: Response): Promise<void> {
     try {
-      const { usuario_id, alias, calle, numero, ciudad, departamento, codigo_postal, principal } = req.body;
+      const { usuario_id, alias, calle, numero, ciudad, departamento, codigo_postal, principal, latitud, longitud } = req.body;
 
       if (!usuario_id || !calle || !numero || !ciudad || !departamento || !codigo_postal) {
         res.status(400).json({ error: "Faltan campos requeridos para la dirección" });
@@ -60,6 +60,8 @@ export const addressController = {
           ciudad,
           departamento,
           codigo_postal,
+          latitud: latitud ? Number(latitud) : null,
+          longitud: longitud ? Number(longitud) : null,
           principal: principal || false,
         },
       });

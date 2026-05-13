@@ -125,6 +125,8 @@ model direcciones {
   ciudad        String    @db.VarChar(100)
   departamento  String    @db.VarChar(100)
   codigo_postal String    @db.VarChar(20)
+  latitud       Decimal?  @db.Decimal(10, 8)
+  longitud      Decimal?  @db.Decimal(11, 8)
   principal     Boolean   @default(false)
   created_at    DateTime  @default(now()) @db.Timestamp(6)
   updated_at    DateTime  @default(now()) @db.Timestamp(6)
