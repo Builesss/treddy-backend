@@ -23,6 +23,8 @@ export const figurasService = {
     nombre: string;
     precio: number;
     imagenUrl?: string;
+    modelo3dUrl?: string;
+    vistaArUrl?: string;
     categorias?: string[];
   }) {
     const nombreArchivo = data.imagenUrl
@@ -37,11 +39,21 @@ export const figurasService = {
       );
     }
 
+    const modelo_3d_path = data.modelo3dUrl
+      ? gcsKey("models/productos", decodeURIComponent(data.modelo3dUrl.split("/").pop()!.split("?")[0]))
+      : null;
+
+    const vista_ar_path = data.vistaArUrl
+      ? gcsKey("models/productos", decodeURIComponent(data.vistaArUrl.split("/").pop()!.split("?")[0]))
+      : null;
+
     const nuevaFigura = await prisma.productos.create({
       data: {
         nombre: data.nombre,
         precio_base: data.precio,
         imagen_path,
+        modelo_3d_path,
+        vista_ar_path,
         categoria: data.categorias?.[0] || "General",
         stock: 10,
         estado: "activo",
@@ -53,7 +65,7 @@ export const figurasService = {
 
   async update(
     id: number,
-    data: { nombre?: string; precio?: number; imagenUrl?: string; categorias?: string[] }
+    data: { nombre?: string; precio?: number; imagenUrl?: string; modelo3dUrl?: string; vistaArUrl?: string; categorias?: string[] }
   ) {
     const figuraExistente = await prisma.productos.findUnique({
       where: { producto_id: id },
@@ -72,12 +84,22 @@ export const figurasService = {
       );
     }
 
+    const modelo_3d_path = data.modelo3dUrl
+      ? gcsKey("models/productos", decodeURIComponent(data.modelo3dUrl.split("/").pop()!.split("?")[0]))
+      : figuraExistente.modelo_3d_path;
+
+    const vista_ar_path = data.vistaArUrl
+      ? gcsKey("models/productos", decodeURIComponent(data.vistaArUrl.split("/").pop()!.split("?")[0]))
+      : figuraExistente.vista_ar_path;
+
     const figuraActualizada = await prisma.productos.update({
       where: { producto_id: id },
       data: {
         nombre: data.nombre || figuraExistente.nombre,
         precio_base: data.precio ?? figuraExistente.precio_base,
         imagen_path,
+        modelo_3d_path,
+        vista_ar_path,
         categoria: data.categorias?.[0] || figuraExistente.categoria,
       },
     });

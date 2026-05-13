@@ -9,7 +9,9 @@ export const getFiguras = async (req: Request, res: Response): Promise<void> => 
     const figurasConUrl = figuras.map((f) => {
       const key = f.imagen_path || gcsKey("images/productos", "default.png");
       const imagenUrl = getPublicUrl(key);
-      return { ...f, imagenUrl, cantidad: 1 };
+      const modelo3dUrl = f.modelo_3d_path ? getPublicUrl(f.modelo_3d_path) : undefined;
+      const vistaArUrl = f.vista_ar_path ? getPublicUrl(f.vista_ar_path) : undefined;
+      return { ...f, imagenUrl, modelo3dUrl, vistaArUrl, cantidad: 1 };
     });
 
     res.json(figurasConUrl);
@@ -31,10 +33,14 @@ export const getFiguraById = async (req: Request, res: Response): Promise<void> 
 
     const key = figura.imagen_path || gcsKey("images/productos", "default.png");
     const imagenUrl = getPublicUrl(key);
+    const modelo3dUrl = figura.modelo_3d_path ? getPublicUrl(figura.modelo_3d_path) : undefined;
+    const vistaArUrl = figura.vista_ar_path ? getPublicUrl(figura.vista_ar_path) : undefined;
 
     res.json({
       ...figura,
       imagenUrl,
+      modelo3dUrl,
+      vistaArUrl,
     });
   } catch (error) {
     console.error("Error al obtener figura:", error);
@@ -44,7 +50,7 @@ export const getFiguraById = async (req: Request, res: Response): Promise<void> 
 
 export const createFigura = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { nombre, precio, imagenUrl, categorias } = req.body;
+    const { nombre, precio, imagenUrl, modelo3dUrl, vistaArUrl, categorias } = req.body;
 
     if (!nombre || !precio) {
       res.status(400).json({ error: "El nombre y precio son obligatorios" });
@@ -55,6 +61,8 @@ export const createFigura = async (req: Request, res: Response): Promise<void> =
       nombre,
       precio: parseFloat(precio),
       imagenUrl,
+      modelo3dUrl,
+      vistaArUrl,
       categorias,
     });
 
@@ -74,12 +82,14 @@ export const createFigura = async (req: Request, res: Response): Promise<void> =
 export const updateFigura = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { nombre, precio, imagenUrl, categorias } = req.body;
+    const { nombre, precio, imagenUrl, modelo3dUrl, vistaArUrl, categorias } = req.body;
 
     const figura = await figurasService.update(Number(id), {
       nombre,
       precio: precio ? parseFloat(precio) : undefined,
       imagenUrl,
+      modelo3dUrl,
+      vistaArUrl,
       categorias,
     });
 

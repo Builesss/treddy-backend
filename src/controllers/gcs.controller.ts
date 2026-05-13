@@ -53,7 +53,7 @@ export const uploadModel = async (req: MulterRequest, res: Response): Promise<vo
     const { buffer, originalname } = req.file;
     const ext = originalname.toLowerCase().split(".").pop();
 
-    if (!/(glb|gltf|fbx|obj|stl)$/i.test(ext || "")) {
+    if (!/(glb|gltf|fbx|obj|stl|usdz)$/i.test(ext || "")) {
       res.status(400).json({ error: "Formato 3D no válido" });
       return;
     }
@@ -63,10 +63,12 @@ export const uploadModel = async (req: MulterRequest, res: Response): Promise<vo
         ? "model/gltf-binary"
         : ext === "gltf"
         ? "model/gltf+json"
+        : ext === "usdz"
+        ? "model/vnd.usdz+zip"
         : "application/octet-stream";
 
     const { objectName } = await uploadBufferToGCS({
-      folder: "models",
+      folder: "models/productos",
       originalName: originalname,
       buffer,
       contentType,
