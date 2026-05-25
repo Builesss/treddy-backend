@@ -97,6 +97,8 @@ export const cartService = {
                 categoria: true,
                 stock: true,
                 estado: true,
+                modelo_3d_path: true,
+                vista_ar_path: true,
               },
             },
           },
@@ -112,6 +114,14 @@ export const cartService = {
           it.productos.imagen_path || gcsKey("images/productos", "default.png");
         const imagenUrl = await getSignedUrl(key);
 
+        const modelo3dUrl = it.productos.modelo_3d_path
+          ? await getSignedUrl(it.productos.modelo_3d_path).catch(() => undefined)
+          : undefined;
+
+        const vistaArUrl = it.productos.vista_ar_path
+          ? await getSignedUrl(it.productos.vista_ar_path).catch(() => undefined)
+          : undefined;
+
         return {
           ...it,
           precio_unitario: Number(
@@ -120,6 +130,10 @@ export const cartService = {
           productos: {
             ...it.productos,
             imagenUrl,
+            modelo3dUrl,
+            vistaArUrl,
+            modelo_3d_path: modelo3dUrl || it.productos.modelo_3d_path,
+            vista_ar_path: vistaArUrl || it.productos.vista_ar_path,
           },
         };
       })
