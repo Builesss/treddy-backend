@@ -209,7 +209,7 @@ model carrito_item {
   carrito         carrito   @relation(fields: [carrito_id], references: [id], onDelete: Cascade, map: "fk_carritoitem_carrito")
   productos       productos @relation(fields: [producto_id], references: [producto_id], onDelete: NoAction, map: "fk_carritoitem_producto")
 
-  @@unique([carrito_id, producto_id], map: "unique_carrito_producto")
+  @@unique([carrito_id, producto_id, precio_unitario], map: "unique_carrito_producto")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
