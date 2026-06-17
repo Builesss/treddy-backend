@@ -29,10 +29,9 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
               for (const it of sessionCart.carrito_item) {
                 await tx.carrito_item.upsert({
                   where: {
-                    carrito_id_producto_id_precio_unitario: {
+                    carrito_id_producto_id: {
                       carrito_id: userCart.id,
                       producto_id: it.producto_id,
-                      precio_unitario: it.precio_unitario,
                     },
                   },
                   create: {
@@ -177,10 +176,9 @@ export const cartService = {
 
     const item = await prisma.carrito_item.upsert({
       where: {
-        carrito_id_producto_id_precio_unitario: {
+        carrito_id_producto_id: {
           carrito_id: Number(cart.id),
           producto_id: productoId,
-          precio_unitario: precioFinal,
         },
       },
       create: {
@@ -267,10 +265,9 @@ export const cartService = {
       for (const it of sessionCart.carrito_item) {
         await tx.carrito_item.upsert({
           where: {
-            carrito_id_producto_id_precio_unitario: {
+            carrito_id_producto_id: {
               carrito_id: Number(userCart.id),
               producto_id: Number(it.producto_id),
-              precio_unitario: it.precio_unitario,
             },
           },
           create: {
