@@ -110,8 +110,8 @@ model pedidos {
   detallepedido    detallepedido[]
   envios           envios[]
   historialpedidos historialpedidos[]
-  usuarios         usuarios           @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_usuarios")
   direcciones      direcciones?       @relation(fields: [direccion_id], references: [id], map: "fk_pedidos_direcciones")
+  usuarios         usuarios           @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_usuarios")
 
   @@index([usuario_id, estado], map: "idx_pedido_usuario_estado")
 }
@@ -125,11 +125,11 @@ model direcciones {
   ciudad        String    @db.VarChar(100)
   departamento  String    @db.VarChar(100)
   codigo_postal String    @db.VarChar(20)
-  latitud       Decimal?  @db.Decimal(10, 8)
-  longitud      Decimal?  @db.Decimal(11, 8)
   principal     Boolean   @default(false)
   created_at    DateTime  @default(now()) @db.Timestamp(6)
   updated_at    DateTime  @default(now()) @db.Timestamp(6)
+  latitud       Decimal?  @db.Decimal(10, 8)
+  longitud      Decimal?  @db.Decimal(11, 8)
   usuarios      usuarios  @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "fk_direcciones_usuarios")
   pedidos       pedidos[]
 }
@@ -161,8 +161,8 @@ model productos {
   categoria          String?              @db.VarChar(100)
   imagen_path        String?              @db.VarChar(512)
   modelo_3d_path     String?              @db.VarChar(512)
-  thumbnail_path     String?              @db.VarChar(512)
   vista_ar_path      String?              @db.VarChar(512)
+  thumbnail_path     String?              @db.VarChar(512)
   carrito_item       carrito_item[]
   detallepedido      detallepedido[]
   historialproductos historialproductos[]
@@ -209,7 +209,7 @@ model carrito_item {
   carrito         carrito   @relation(fields: [carrito_id], references: [id], onDelete: Cascade, map: "fk_carritoitem_carrito")
   productos       productos @relation(fields: [producto_id], references: [producto_id], onDelete: NoAction, map: "fk_carritoitem_producto")
 
-  @@unique([carrito_id, producto_id, precio_unitario], map: "unique_carrito_producto")
+  @@unique([carrito_id, producto_id], map: "unique_carrito_producto")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -224,4 +224,11 @@ model resenas {
   usuarios    usuarios  @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade)
 
   @@index([producto_id], map: "idx_resenas_producto")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
 }
