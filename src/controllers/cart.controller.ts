@@ -31,11 +31,12 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
 
 export const addItem = async (req: Request, res: Response): Promise<void> => {
   try {
-    let { userId, sessionId, productoId, cantidad } = req.body as {
+    let { userId, sessionId, productoId, cantidad, precioPersonalizado } = req.body as {
       userId?: number | string;
       sessionId?: string;
       productoId?: number | string;
       cantidad?: number | string;
+      precioPersonalizado?: number | string;
     };
 
     const parsedUserId = userId ? Number(userId) : undefined;
@@ -50,7 +51,7 @@ export const addItem = async (req: Request, res: Response): Promise<void> => {
       res.cookie("sessionId", activeSessionId, {
         httpOnly: true,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 60 * 24 * 30, 
+        maxAge: 1000 * 60 * 60 * 24 * 30,
       });
     }
 
@@ -58,7 +59,8 @@ export const addItem = async (req: Request, res: Response): Promise<void> => {
       parsedUserId,
       activeSessionId,
       Number(productoId),
-      Number(cantidad) || 1
+      Number(cantidad) || 1,
+      precioPersonalizado !== undefined ? Number(precioPersonalizado) : undefined
     );
 
     res.status(201).json(serializeBigInt(item));

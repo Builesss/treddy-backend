@@ -29,9 +29,10 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
               for (const it of sessionCart.carrito_item) {
                 await tx.carrito_item.upsert({
                   where: {
-                    carrito_id_producto_id: {
+                    carrito_id_producto_id_precio_unitario: {
                       carrito_id: userCart.id,
                       producto_id: it.producto_id,
+                      precio_unitario: it.precio_unitario,
                     },
                   },
                   create: {
@@ -47,8 +48,8 @@ async function getOrCreateCart(userId?: number, sessionId?: string) {
             });
           }
           return userCart;
-        } 
-        
+        }
+
         // Caso B: No existe carrito de usuario pero sí de sesión -> Vincular sesión al usuario
         return prisma.carrito.update({
           where: { id: sessionCart.id },
@@ -152,7 +153,8 @@ export const cartService = {
     userId?: number,
     sessionId?: string,
     productoId?: number,
-    cantidad = 1
+    cantidad = 1,
+    precioPersonalizado?: number
   ) {
     if (!productoId) throw new Error("productoId es obligatorio");
 
@@ -168,21 +170,28 @@ export const cartService = {
     if (prod.stock != null && prod.stock <= 0)
       throw new Error("Sin stock disponible");
 
+    // Usar precio personalizado si se provee, de lo contrario usar el precio base
+    const precioFinal = precioPersonalizado !== undefined
+      ? new Decimal(precioPersonalizado.toString())
+      : prod.precio_base;
+
     const item = await prisma.carrito_item.upsert({
       where: {
-        carrito_id_producto_id: {
+        carrito_id_producto_id_precio_unitario: {
           carrito_id: Number(cart.id),
           producto_id: productoId,
+          precio_unitario: precioFinal,
         },
       },
       create: {
         carrito_id: Number(cart.id),
         producto_id: productoId,
         cantidad,
-        precio_unitario: prod.precio_base,
+        precio_unitario: precioFinal,
       },
       update: {
         cantidad: { increment: cantidad },
+        precio_unitario: precioFinal,
       },
     });
 
@@ -206,10 +215,7 @@ export const cartService = {
 
     const updated = await prisma.carrito_item.update({
       where: {
-        carrito_id_producto_id: {
-          carrito_id: Number(cart.id),
-          producto_id: productoId,
-        },
+        id: Number(productoId),
       },
       data: { cantidad: Number(cantidad) },
     });
@@ -224,10 +230,7 @@ export const cartService = {
 
     await prisma.carrito_item.delete({
       where: {
-        carrito_id_producto_id: {
-          carrito_id: Number(cart.id),
-          producto_id: productoId,
-        },
+        id: Number(productoId),
       },
     });
 
@@ -264,9 +267,10 @@ export const cartService = {
       for (const it of sessionCart.carrito_item) {
         await tx.carrito_item.upsert({
           where: {
-            carrito_id_producto_id: {
+            carrito_id_producto_id_precio_unitario: {
               carrito_id: Number(userCart.id),
               producto_id: Number(it.producto_id),
+              precio_unitario: it.precio_unitario,
             },
           },
           create: {
