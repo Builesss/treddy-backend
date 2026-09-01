@@ -5,7 +5,10 @@ import {
   resetPassword,
   getUserProfile,
   updateUserProfile,
-  getUserOrders
+  getUserOrders,
+  changePassword,
+  getPreferences,
+  updatePreferences
 } from "../controllers/users.controller";
 
 const router = Router();
@@ -291,6 +294,114 @@ router.get(
   "/orders",
   passport.authenticate("jwt", { session: false }),
   getUserOrders
+);
+
+/**
+ * @swagger
+ * /api/user/change-password:
+ *   put:
+ *     summary: Cambiar contraseña del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - contrasenaActual
+ *               - nuevaContrasena
+ *             properties:
+ *               contrasenaActual:
+ *                 type: string
+ *                 example: miPasswordActual
+ *               nuevaContrasena:
+ *                 type: string
+ *                 example: miNuevaPassword123
+ *     responses:
+ *       200:
+ *         description: Contraseña actualizada correctamente
+ *       400:
+ *         description: Contraseña actual incorrecta o campos faltantes
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error del servidor
+ */
+router.put(
+  "/change-password",
+  passport.authenticate("jwt", { session: false }),
+  changePassword
+);
+
+/**
+ * @swagger
+ * /api/user/preferences:
+ *   get:
+ *     summary: Obtener preferencias del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferencias del usuario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 notificaciones_email:
+ *                   type: boolean
+ *                 notificaciones_sms:
+ *                   type: boolean
+ *                 tema:
+ *                   type: string
+ *                   enum: [oscuro, claro]
+ *       401:
+ *         description: No autorizado
+ */
+router.get(
+  "/preferences",
+  passport.authenticate("jwt", { session: false }),
+  getPreferences
+);
+
+/**
+ * @swagger
+ * /api/user/preferences:
+ *   put:
+ *     summary: Actualizar preferencias del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               notificaciones_email:
+ *                 type: boolean
+ *               notificaciones_sms:
+ *                 type: boolean
+ *               tema:
+ *                 type: string
+ *                 enum: [oscuro, claro]
+ *     responses:
+ *       200:
+ *         description: Preferencias guardadas
+ *       400:
+ *         description: Tema inválido
+ *       401:
+ *         description: No autorizado
+ */
+router.put(
+  "/preferences",
+  passport.authenticate("jwt", { session: false }),
+  updatePreferences
 );
 
 export default router;

@@ -114,3 +114,71 @@ export const getUserOrders = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ message: error.message });
   }
 };
+
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || !user.usuario_id) {
+      res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+
+    const { contrasenaActual, nuevaContrasena } = req.body;
+    if (!contrasenaActual || !nuevaContrasena) {
+      res.status(400).json({ error: "La contraseña actual y la nueva son requeridas" });
+      return;
+    }
+
+    const userId = Number(user.usuario_id);
+    const result = await usersService.changePassword(userId, contrasenaActual, nuevaContrasena);
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error en changePassword:", error);
+    if (error.message === "La contraseña actual es incorrecta") {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+};
+
+export const getPreferences = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || !user.usuario_id) {
+      res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+
+    const prefs = await usersService.getPreferences(Number(user.usuario_id));
+    res.status(200).json(prefs);
+  } catch (error: any) {
+    console.error("Error en getPreferences:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const updatePreferences = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || !user.usuario_id) {
+      res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+
+    const { notificaciones_email, notificaciones_sms, tema } = req.body;
+    const prefs = await usersService.updatePreferences(Number(user.usuario_id), {
+      notificaciones_email,
+      notificaciones_sms,
+      tema,
+    });
+    res.status(200).json({ message: "Preferencias guardadas", ...prefs });
+  } catch (error: any) {
+    console.error("Error en updatePreferences:", error);
+    if (error.message?.includes("Tema inválido")) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+};

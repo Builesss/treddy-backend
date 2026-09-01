@@ -5,6 +5,12 @@ import { sendEmail } from "./email.service";
 
 const prisma = new PrismaClient();
 
+const PREFS_DEFAULTS = {
+  notificaciones_email: true,
+  notificaciones_sms: false,
+  tema: "oscuro",
+};
+
 export const usersService = {
   async getProfile(userId: number) {
     const user = await prisma.usuarios.findUnique({
@@ -143,6 +149,80 @@ export const usersService = {
     } catch {
       throw new Error("Token inválido o expirado");
     }
+  },
+
+  async changePassword(
+    userId: number,
+    contrasenaActual: string,
+    nuevaContrasena: string
+  ) {
+    const user = await prisma.usuarios.findUnique({
+      where: { usuario_id: BigInt(userId) },
+      select: { contrasena: true },
+    });
+
+    if (!user) throw new Error("Usuario no encontrado");
+
+    const coincide = await bcrypt.compare(contrasenaActual, user.contrasena);
+    if (!coincide) throw new Error("La contraseña actual es incorrecta");
+
+    const hash = await bcrypt.hash(nuevaContrasena, 10);
+    await prisma.usuarios.update({
+      where: { usuario_id: BigInt(userId) },
+      data: { contrasena: hash, updated_at: new Date() },
+    });
+
+    return { message: "Contraseña actualizada correctamente" };
+  },
+
+  async getPreferences(userId: number) {
+    const prefs = await prisma.preferencias_usuario.findUnique({
+      where: { usuario_id: BigInt(userId) },
+    });
+
+    if (!prefs) return PREFS_DEFAULTS;
+
+    return {
+      notificaciones_email: prefs.notificaciones_email,
+      notificaciones_sms: prefs.notificaciones_sms,
+      tema: prefs.tema,
+    };
+  },
+
+  async updatePreferences(
+    userId: number,
+    data: {
+      notificaciones_email?: boolean;
+      notificaciones_sms?: boolean;
+      tema?: string;
+    }
+  ) {
+    const temasValidos = ["oscuro", "claro"];
+    if (data.tema && !temasValidos.includes(data.tema)) {
+      throw new Error("Tema inválido. Los valores permitidos son: oscuro, claro");
+    }
+
+    const prefs = await prisma.preferencias_usuario.upsert({
+      where: { usuario_id: BigInt(userId) },
+      create: {
+        usuario_id: BigInt(userId),
+        notificaciones_email: data.notificaciones_email ?? PREFS_DEFAULTS.notificaciones_email,
+        notificaciones_sms: data.notificaciones_sms ?? PREFS_DEFAULTS.notificaciones_sms,
+        tema: data.tema ?? PREFS_DEFAULTS.tema,
+      },
+      update: {
+        ...(data.notificaciones_email !== undefined && { notificaciones_email: data.notificaciones_email }),
+        ...(data.notificaciones_sms !== undefined && { notificaciones_sms: data.notificaciones_sms }),
+        ...(data.tema !== undefined && { tema: data.tema }),
+        updated_at: new Date(),
+      },
+    });
+
+    return {
+      notificaciones_email: prefs.notificaciones_email,
+      notificaciones_sms: prefs.notificaciones_sms,
+      tema: prefs.tema,
+    };
   },
 };
 

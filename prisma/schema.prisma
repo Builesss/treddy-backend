@@ -172,23 +172,35 @@ model productos {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model usuarios {
-  usuario_id         BigInt               @id @default(autoincrement())
-  nombre             String               @db.VarChar(100)
-  apellido           String               @db.VarChar(100)
-  email              String               @unique @db.VarChar(150)
-  telefono           String?              @db.VarChar(20)
-  contrasena         String               @db.VarChar(255)
-  tipo_usuario       String               @db.VarChar(20)
-  created_at         DateTime             @default(now()) @db.Timestamp(6)
-  updated_at         DateTime             @default(now()) @db.Timestamp(6)
-  estado             String               @default("Pendiente") @db.VarChar(20)
-  auditoria          auditoria[]
-  direcciones        direcciones[]
-  envios             envios[]
-  historialpedidos   historialpedidos[]
-  historialproductos historialproductos[]
-  pedidos            pedidos[]
-  resenas            resenas[]
+  usuario_id              BigInt                   @id @default(autoincrement())
+  nombre                  String                   @db.VarChar(100)
+  apellido                String                   @db.VarChar(100)
+  email                   String                   @unique @db.VarChar(150)
+  telefono                String?                  @db.VarChar(20)
+  contrasena              String                   @db.VarChar(255)
+  tipo_usuario            String                   @db.VarChar(20)
+  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at              DateTime                 @default(now()) @db.Timestamp(6)
+  estado                  String                   @default("Pendiente") @db.VarChar(20)
+  auditoria               auditoria[]
+  direcciones             direcciones[]
+  envios                  envios[]
+  historialpedidos        historialpedidos[]
+  historialproductos      historialproductos[]
+  pedidos                 pedidos[]
+  resenas                 resenas[]
+  preferencias_usuario    preferencias_usuario?
+}
+
+model preferencias_usuario {
+  id                    BigInt    @id @default(autoincrement())
+  usuario_id            BigInt    @unique
+  notificaciones_email  Boolean   @default(true)
+  notificaciones_sms    Boolean   @default(false)
+  tema                  String    @default("oscuro") @db.VarChar(10)
+  created_at            DateTime  @default(now()) @db.Timestamp(6)
+  updated_at            DateTime  @default(now()) @db.Timestamp(6)
+  usuarios              usuarios  @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade)
 }
 
 model carrito {
