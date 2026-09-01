@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { registerUser, loginUser, verifyEmail } from "../services/auth.service";
+import { registrarAuditoria } from "../services/auditoria.service";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   const errors = validationResult(req);
@@ -13,6 +14,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const usuario = await registerUser({ nombre, apellido, email, telefono, contrasena });
+      // Registrar auditoría de nuevo usuario
+    if (usuario && usuario.usuario_id) {
+      await registrarAuditoria(
+        Number(usuario.usuario_id),
+        "usuarios",
+        Number(usuario.usuario_id),
+        "crear"
+      );
+    }
     res.status(201).json({
       message: "Usuario registrado con éxito",
       usuario,
