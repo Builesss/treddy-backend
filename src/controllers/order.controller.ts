@@ -216,4 +216,81 @@ export const orderController = {
       res.status(500).json({ error: error.message || "Error interno del servidor" });
     }
   },
+
+  async getAllOrders(req: Request, res: Response): Promise<void> {
+    try {
+      const user = req.user as any;
+      if (!user || user.tipo_usuario !== 'administrador') {
+        res.status(403).json({ error: "Acceso denegado" });
+        return;
+      }
+
+      const pedidos = await prisma.pedidos.findMany({
+        include: {
+          usuarios: { select: { nombre: true, email: true } },
+          detallepedido: { include: { productos: { select: { nombre: true } } } },
+        },
+        orderBy: { fecha_pedido: 'desc' }
+      });
+
+      const formateados = pedidos.map((p) => ({
+        id: Number(p.pedido_id),
+        codigo: p.codigo_pedido,
+        cliente: p.usuarios.nombre,
+        email: p.usuarios.email,
+        fecha: p.fecha_pedido.toISOString().split("T")[0],
+        estado: p.estado || "pendiente",
+        total: Number(p.total),
+        items: p.detallepedido.length
+      }));
+
+      res.json(formateados);
+    } catch (error: any) {
+      console.error("Error en getAllOrders:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  },
+
+  async updateOrderStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const user = req.user as any;
+      if (!user || user.tipo_usuario !== 'administrador') {
+        res.status(403).json({ error: "Acceso denegado" });
+        return;
+      }
+
+      const pedidoId = BigInt(req.params.id);
+      const { estado } = req.body;
+
+      const updated = await prisma.pedidos.update({
+        where: { pedido_id: pedidoId },
+        data: { estado, updated_at: new Date() }
+      });
+
+      res.json({ message: "Estado actualizado", pedido: { id: Number(updated.pedido_id), estado: updated.estado } });
+    } catch (error: any) {
+      console.error("Error en updateOrderStatus:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  },
+
+  async deleteOrder(req: Request, res: Response): Promise<void> {
+    try {
+      const user = req.user as any;
+      if (!user || user.tipo_usuario !== 'administrador') {
+        res.status(403).json({ error: "Acceso denegado" });
+        return;
+      }
+      const pedidoId = BigInt(req.params.id);
+
+      await prisma.detallepedido.deleteMany({ where: { pedido_id: pedidoId } });
+      await prisma.historialpedidos.deleteMany({ where: { pedido_id: pedidoId } });
+      await prisma.pedidos.delete({ where: { pedido_id: pedidoId } });
+
+      res.json({ message: "Pedido eliminado exitosamente" });
+    } catch (error: any) {
+      console.error("Error en deleteOrder:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  },
 };

@@ -59,4 +59,8 @@ router.post(
   orderController.cancelOrder
 );
 
+router.get("/all", passport.authenticate("jwt", { session: false }), orderController.getAllOrders);
+router.put("/:id/status", passport.authenticate("jwt", { session: false }), orderController.updateOrderStatus);
+router.delete("/:id", passport.authenticate("jwt", { session: false }), orderController.deleteOrder);
+
 export default router;

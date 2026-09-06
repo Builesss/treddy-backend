@@ -8,7 +8,10 @@ import {
   getUserOrders,
   changePassword,
   getPreferences,
-  updatePreferences
+  updatePreferences,
+  getAllUsers,
+  updateUserStatus,
+  deleteUser
 } from "../controllers/users.controller";
 
 const router = Router();
@@ -403,5 +406,9 @@ router.put(
   passport.authenticate("jwt", { session: false }),
   updatePreferences
 );
+
+router.get("/all", passport.authenticate("jwt", { session: false }), getAllUsers);
+router.put("/:id/status", passport.authenticate("jwt", { session: false }), updateUserStatus);
+router.delete("/:id", passport.authenticate("jwt", { session: false }), deleteUser);
 
 export default router;

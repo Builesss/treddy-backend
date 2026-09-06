@@ -224,6 +224,68 @@ export const usersService = {
       tema: prefs.tema,
     };
   },
+
+  async getAllUsers() {
+    const users = await prisma.usuarios.findMany({
+      select: {
+        usuario_id: true,
+        nombre: true,
+        apellido: true,
+        email: true,
+        telefono: true,
+        tipo_usuario: true,
+        estado: true,
+        created_at: true,
+      },
+      orderBy: { created_at: "desc" },
+    });
+    return users.map((u: any) => ({
+      usuario_id: Number(u.usuario_id),
+      nombre: u.nombre,
+      apellido: u.apellido,
+      email: u.email,
+      telefono: u.telefono,
+      tipo_usuario: u.tipo_usuario,
+      estado: u.estado,
+      created_at: u.created_at,
+    }));
+  },
+
+  async updateUserStatus(userId: number, updateData: { estado?: string; tipo_usuario?: string }) {
+    const updated = await prisma.usuarios.update({
+      where: { usuario_id: BigInt(userId) },
+      data: updateData,
+      select: {
+        usuario_id: true,
+        nombre: true,
+        apellido: true,
+        email: true,
+        tipo_usuario: true,
+        estado: true,
+      },
+    });
+    return {
+      usuario_id: Number(updated.usuario_id),
+      nombre: updated.nombre,
+      apellido: updated.apellido,
+      email: updated.email,
+      tipo_usuario: updated.tipo_usuario,
+      estado: updated.estado,
+    };
+  },
+
+  async deleteUser(userId: number) {
+    try {
+      await prisma.preferencias_usuario.delete({
+        where: { usuario_id: BigInt(userId) },
+      });
+    } catch (e) {}
+
+    await prisma.usuarios.delete({
+      where: { usuario_id: BigInt(userId) },
+    });
+    return { message: "Usuario eliminado exitosamente" };
+  }
 };
 
 function getResetPasswordEmailTemplate(name: string, url: string): string {

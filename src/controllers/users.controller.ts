@@ -182,3 +182,58 @@ export const updatePreferences = async (req: Request, res: Response): Promise<vo
     }
   }
 };
+
+export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || user.tipo_usuario !== 'administrador') {
+      res.status(403).json({ error: "Acceso denegado" });
+      return;
+    }
+    const users = await usersService.getAllUsers();
+    res.json(users);
+  } catch (error: any) {
+    console.error("Error en getAllUsers:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const updateUserStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || user.tipo_usuario !== 'administrador') {
+      res.status(403).json({ error: "Acceso denegado" });
+      return;
+    }
+    const targetUserId = Number(req.params.id);
+    const { estado, tipo_usuario } = req.body;
+    
+    const updated = await usersService.updateUserStatus(targetUserId, { estado, tipo_usuario });
+    res.json({ message: "Usuario actualizado", usuario: updated });
+  } catch (error: any) {
+    console.error("Error en updateUserStatus:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user || user.tipo_usuario !== 'administrador') {
+      res.status(403).json({ error: "Acceso denegado" });
+      return;
+    }
+    const targetUserId = Number(req.params.id);
+    
+    if (targetUserId === Number(user.usuario_id)) {
+      res.status(400).json({ error: "No puedes eliminar tu propia cuenta" });
+      return;
+    }
+
+    const result = await usersService.deleteUser(targetUserId);
+    res.json(result);
+  } catch (error: any) {
+    console.error("Error en deleteUser:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
