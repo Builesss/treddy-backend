@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { usersService } from "../services/users.service";
+import { registrarAuditoria } from "../services/auditoria.service";
 
 export const requestPasswordReset = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -81,6 +82,15 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
       telefono,
     });
 
+    await registrarAuditoria(
+      userId,
+      "usuarios",
+      userId,
+      "modificar_perfil",
+      user,
+      updated
+    );
+
     res.json({
       message: "Perfil actualizado con éxito",
       usuario: updated,
@@ -131,6 +141,17 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     const userId = Number(user.usuario_id);
     const result = await usersService.changePassword(userId, contrasenaActual, nuevaContrasena);
+
+    await registrarAuditoria(
+      userId,
+      "usuarios",
+      userId,
+      "cambiar_contrasena",
+      null,
+      null,
+      "Cambio de contraseña"
+    );
+
     res.status(200).json(result);
   } catch (error: any) {
     console.error("Error en changePassword:", error);
@@ -172,6 +193,16 @@ export const updatePreferences = async (req: Request, res: Response): Promise<vo
       notificaciones_sms,
       tema,
     });
+
+    await registrarAuditoria(
+      Number(user.usuario_id),
+      "preferencias_usuario",
+      Number(user.usuario_id),
+      "modificar_preferencias",
+      null,
+      prefs
+    );
+
     res.status(200).json({ message: "Preferencias guardadas", ...prefs });
   } catch (error: any) {
     console.error("Error en updatePreferences:", error);
@@ -208,7 +239,19 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
     const targetUserId = Number(req.params.id);
     const { estado, tipo_usuario } = req.body;
     
+    const userAntes = await usersService.getProfile(targetUserId);
+
     const updated = await usersService.updateUserStatus(targetUserId, { estado, tipo_usuario });
+
+    await registrarAuditoria(
+      Number(user.usuario_id),
+      "usuarios",
+      targetUserId,
+      "modificar_estado",
+      userAntes,
+      updated
+    );
+
     res.json({ message: "Usuario actualizado", usuario: updated });
   } catch (error: any) {
     console.error("Error en updateUserStatus:", error);
@@ -230,7 +273,19 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    const userAntes = await usersService.getProfile(targetUserId);
+
     const result = await usersService.deleteUser(targetUserId);
+
+    await registrarAuditoria(
+      Number(user.usuario_id),
+      "usuarios",
+      targetUserId,
+      "eliminar_usuario",
+      userAntes,
+      null
+    );
+
     res.json(result);
   } catch (error: any) {
     console.error("Error en deleteUser:", error);

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { sendEmail } from "../services/email.service";
+import { registrarAuditoria } from "../services/auditoria.service";
 
 const prisma = new PrismaClient();
 
@@ -262,10 +263,23 @@ export const orderController = {
       const pedidoId = BigInt(req.params.id);
       const { estado } = req.body;
 
+      const pedidoAntes = await prisma.pedidos.findUnique({
+        where: { pedido_id: pedidoId },
+      });
+
       const updated = await prisma.pedidos.update({
         where: { pedido_id: pedidoId },
         data: { estado, updated_at: new Date() }
       });
+
+      await registrarAuditoria(
+        Number(user.usuario_id),
+        "pedidos",
+        Number(pedidoId),
+        "modificar_estado",
+        pedidoAntes,
+        updated
+      );
 
       res.json({ message: "Estado actualizado", pedido: { id: Number(updated.pedido_id), estado: updated.estado } });
     } catch (error: any) {
@@ -283,9 +297,23 @@ export const orderController = {
       }
       const pedidoId = BigInt(req.params.id);
 
+      const pedidoAntes = await prisma.pedidos.findUnique({
+        where: { pedido_id: pedidoId },
+        include: { detallepedido: true }
+      });
+
       await prisma.detallepedido.deleteMany({ where: { pedido_id: pedidoId } });
       await prisma.historialpedidos.deleteMany({ where: { pedido_id: pedidoId } });
       await prisma.pedidos.delete({ where: { pedido_id: pedidoId } });
+
+      await registrarAuditoria(
+        Number(user.usuario_id),
+        "pedidos",
+        Number(pedidoId),
+        "eliminar_pedido",
+        pedidoAntes,
+        null
+      );
 
       res.json({ message: "Pedido eliminado exitosamente" });
     } catch (error: any) {

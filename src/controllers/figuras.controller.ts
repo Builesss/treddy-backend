@@ -91,6 +91,12 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
     const { id } = req.params;
     const { nombre, precio, imagenUrl, modelo3dUrl, vistaArUrl, categorias } = req.body;
 
+    const figuraAntes = await figurasService.getById(Number(id));
+    if (!figuraAntes) {
+      res.status(404).json({ error: "Figura no encontrada" });
+      return;
+    }
+
     const figura = await figurasService.update(Number(id), {
       nombre,
       precio: precio ? parseFloat(precio) : undefined,
@@ -100,20 +106,20 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
       categorias,
     });
 
-    const user = req.user as any;
-    const userId = user?.usuario_id || user?.id || 0;
-
     if (!figura) {
-      res.status(404).json({ error: "Figura no encontrada" });
+      res.status(404).json({ error: "Figura no encontrada tras actualizar" });
       return;
     }
+
+    const user = req.user as any;
+    const userId = user?.usuario_id || user?.id || 0;
 
     await registrarAuditoria(
       Number(userId),
       "productos",
       Number(figura.producto_id),
       "modificar",
-      null,
+      figuraAntes,
       figura
     );
 
@@ -127,22 +133,23 @@ export const updateFigura = async (req: Request, res: Response): Promise<void> =
 export const deleteFigura = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const figura = await figurasService.delete(Number(id));
-
-    if (!figura) {
+    const figuraAntes = await figurasService.getById(Number(id));
+    if (!figuraAntes) {
       res.status(404).json({ error: "Figura no encontrada" });
       return;
     }
 
-        const user = req.user as any;
+    const figura = await figurasService.delete(Number(id));
+
+    const user = req.user as any;
     const userId = user?.usuario_id || user?.id || 0;
 
     await registrarAuditoria(
       Number(userId),
       "productos",
-      Number(figura.producto_id),
+      Number(figuraAntes.producto_id),
       "eliminar",
-      figura,
+      figuraAntes,
       null
     );
 
