@@ -1,4 +1,5 @@
 import { Router } from "express";
+import passport from "../config/passport";
 import {
   getFiguras,
   getFiguraById,
@@ -134,7 +135,7 @@ router.get("/:id", getFiguraById);
  *       500:
  *         description: Error al crear la figura
  */
-router.post("/", createFigura);
+router.post("/", passport.authenticate("jwt", { session: false }), createFigura);
 
 /**
  * @swagger
@@ -178,7 +179,7 @@ router.post("/", createFigura);
  *       500:
  *         description: Error al actualizar la figura
  */
-router.put("/:id", updateFigura);
+router.put("/:id", passport.authenticate("jwt", { session: false }), updateFigura);
 
 /**
  * @swagger
@@ -201,6 +202,6 @@ router.put("/:id", updateFigura);
  *       500:
  *         description: Error al eliminar la figura
  */
-router.delete("/:id", deleteFigura);
+router.delete("/:id", passport.authenticate("jwt", { session: false }), deleteFigura);
 
 export default router;

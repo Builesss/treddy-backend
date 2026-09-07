@@ -310,9 +310,10 @@ export const orderController = {
         Number(user.usuario_id),
         "pedidos",
         Number(pedidoId),
-        "eliminar_pedido",
+        "eliminar",
         pedidoAntes,
-        null
+        null,
+        `Admin elimin\u00f3 pedido ID ${Number(pedidoId)}`
       );
 
       res.json({ message: "Pedido eliminado exitosamente" });

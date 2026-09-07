@@ -86,9 +86,10 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
       userId,
       "usuarios",
       userId,
-      "modificar_perfil",
+      "modificar",
       user,
-      updated
+      updated,
+      "Actualización de perfil de usuario"
     );
 
     res.json({
@@ -146,7 +147,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       userId,
       "usuarios",
       userId,
-      "cambiar_contrasena",
+      "modificar",
       null,
       null,
       "Cambio de contraseña"
@@ -198,9 +199,10 @@ export const updatePreferences = async (req: Request, res: Response): Promise<vo
       Number(user.usuario_id),
       "preferencias_usuario",
       Number(user.usuario_id),
-      "modificar_preferencias",
+      "modificar",
       null,
-      prefs
+      prefs,
+      "Actualización de preferencias de usuario"
     );
 
     res.status(200).json({ message: "Preferencias guardadas", ...prefs });
@@ -247,9 +249,10 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
       Number(user.usuario_id),
       "usuarios",
       targetUserId,
-      "modificar_estado",
+      "modificar",
       userAntes,
-      updated
+      updated,
+      `Admin modificó estado/rol del usuario ID ${targetUserId}`
     );
 
     res.json({ message: "Usuario actualizado", usuario: updated });
@@ -281,9 +284,10 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       Number(user.usuario_id),
       "usuarios",
       targetUserId,
-      "eliminar_usuario",
+      "eliminar",
       userAntes,
-      null
+      null,
+      `Admin eliminó al usuario ${userAntes?.email || targetUserId}`
     );
 
     res.json(result);
