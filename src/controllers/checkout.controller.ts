@@ -60,6 +60,16 @@ export const checkoutController = {
             subtotal: Number(item.unit_price) * Number(item.quantity),
           }))
         });
+
+        const { registrarAuditoria } = require("../services/auditoria.service");
+        await registrarAuditoria(
+          Number(userId),
+          "pedidos",
+          Number(nuevoPedido.pedido_id),
+          "crear",
+          null,
+          { ...nuevoPedido, items_comprados: items } // Incluimos items para que se vea qué compró y personalizó
+        );
       }
 
       // Llamar a MercadoPago para crear preferencia
