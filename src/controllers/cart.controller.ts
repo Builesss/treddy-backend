@@ -58,7 +58,7 @@ export const addItem = async (req: Request, res: Response): Promise<void> => {
     const item = await cartService.addItem(
       parsedUserId,
       activeSessionId,
-      Number(productoId),
+      productoId ? Number(productoId) : undefined,
       Number(cantidad) || 1,
       precioPersonalizado !== undefined ? Number(precioPersonalizado) : undefined
     );

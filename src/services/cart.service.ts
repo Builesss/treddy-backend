@@ -155,7 +155,22 @@ export const cartService = {
     cantidad = 1,
     precioPersonalizado?: number
   ) {
-    if (!productoId) throw new Error("productoId es obligatorio");
+    if (!productoId) {
+      let customProd = await prisma.productos.findFirst({ where: { nombre: 'Modelo Personalizado' } });
+      if (!customProd) {
+        customProd = await prisma.productos.create({
+          data: {
+            nombre: 'Modelo Personalizado',
+            descripcion: 'Figura 3D personalizada cargada por el usuario',
+            precio_base: 60000,
+            stock: 9999,
+            estado: 'activo',
+            categoria: 'Personalizado'
+          }
+        });
+      }
+      productoId = Number(customProd.producto_id);
+    }
 
     const cart = await getOrCreateCart(userId, sessionId);
     const prod = await prisma.productos.findUnique({
