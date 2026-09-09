@@ -112,7 +112,7 @@ export const cartService = {
       cart.carrito_item.map(async (it: any) => {
         const key =
           it.productos.imagen_path || gcsKey("images/productos", "default.png");
-        const imagenUrl = await getSignedUrl(key);
+        const imagenUrl = await getSignedUrl(key).catch(() => undefined);
 
         const modelo3dUrl = it.productos.modelo_3d_path
           ? await getSignedUrl(it.productos.modelo_3d_path).catch(() => undefined)
