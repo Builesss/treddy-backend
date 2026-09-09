@@ -23,11 +23,24 @@ const mapFiguraConUrls = (f: any) => {
 
 export const getFiguras = async (req: Request, res: Response): Promise<void> => {
   try {
-    const figuras = await figurasService.getAll();
+    // Endpoint público: solo productos activos
+    const figuras = await figurasService.getAll(true);
     const figurasConUrl = figuras.map(mapFiguraConUrls);
     res.json(figurasConUrl);
   } catch (error) {
     console.error("Error al obtener las figuras:", error);
+    res.status(500).json({ error: "Error al obtener las figuras" });
+  }
+};
+
+export const getFigurasAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Endpoint admin: todos los productos (activos e inactivos)
+    const figuras = await figurasService.getAll(false);
+    const figurasConUrl = figuras.map(mapFiguraConUrls);
+    res.json(figurasConUrl);
+  } catch (error) {
+    console.error("Error al obtener las figuras (admin):", error);
     res.status(500).json({ error: "Error al obtener las figuras" });
   }
 };
@@ -157,5 +170,41 @@ export const deleteFigura = async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error("Error al eliminar figura:", error);
     res.status(500).json({ error: "Error al eliminar la figura" });
+  }
+};
+
+export const toggleEstadoFigura = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const figuraAntes = await figurasService.getById(Number(id));
+    if (!figuraAntes) {
+      res.status(404).json({ error: "Figura no encontrada" });
+      return;
+    }
+
+    const figuraActualizada = await figurasService.toggleEstado(Number(id));
+    if (!figuraActualizada) {
+      res.status(404).json({ error: "No se pudo actualizar" });
+      return;
+    }
+
+    const user = req.user as any;
+    const userId = user?.usuario_id || user?.id || 0;
+    const accion = figuraActualizada.estado === "activo" ? "Producto activado" : "Producto desactivado";
+
+    await registrarAuditoria(
+      Number(userId),
+      "productos",
+      Number(figuraActualizada.producto_id),
+      "modificar",
+      figuraAntes,
+      figuraActualizada,
+      accion
+    );
+
+    res.json(mapFiguraConUrls(figuraActualizada));
+  } catch (error) {
+    console.error("Error al cambiar estado de figura:", error);
+    res.status(500).json({ error: "Error al cambiar el estado del producto" });
   }
 };

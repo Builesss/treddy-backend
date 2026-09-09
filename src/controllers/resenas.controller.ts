@@ -60,6 +60,19 @@ export const createResena = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    // CP-RES-04: Verificar si el usuario ya calificó este producto
+    const resenaExistente = await prisma.resenas.findFirst({
+      where: {
+        producto_id: productoId,
+        usuario_id: BigInt(user.usuario_id),
+      },
+    });
+
+    if (resenaExistente) {
+      res.status(409).json({ message: "Ya has calificado este producto" });
+      return;
+    }
+
     const resena = await prisma.resenas.create({
       data: {
         producto_id: productoId,
@@ -82,5 +95,42 @@ export const createResena = async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error("Error al crear reseña:", error);
     res.status(500).json({ message: "Error al guardar la reseña" });
+  }
+};
+
+// DELETE /api/resenas/:resenaId  (requiere JWT — CP-RES-07)
+export const deleteResena = async (req: Request, res: Response): Promise<void> => {
+  const user = req.user as any;
+  if (!user) {
+    res.status(401).json({ message: "No autorizado" });
+    return;
+  }
+
+  try {
+    const resenaId = BigInt(req.params.resenaId);
+
+    const resena = await prisma.resenas.findUnique({
+      where: { resena_id: resenaId },
+    });
+
+    if (!resena) {
+      res.status(404).json({ message: "Reseña no encontrada" });
+      return;
+    }
+
+    const esAdmin = user.tipo_usuario === "administrador";
+    const esPropietario = resena.usuario_id === BigInt(user.usuario_id);
+
+    if (!esAdmin && !esPropietario) {
+      res.status(403).json({ message: "No tienes permiso para eliminar esta reseña" });
+      return;
+    }
+
+    await prisma.resenas.delete({ where: { resena_id: resenaId } });
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error al eliminar reseña:", error);
+    res.status(500).json({ message: "Error al eliminar la reseña" });
   }
 };

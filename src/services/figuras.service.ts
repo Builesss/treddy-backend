@@ -4,8 +4,10 @@ import { gcsKey } from "../lib/gcs";
 const prisma = new PrismaClient();
 
 export const figurasService = {
-  async getAll() {
-    const figuras = await prisma.productos.findMany();
+  async getAll(soloActivos = true) {
+    const figuras = await prisma.productos.findMany({
+      where: soloActivos ? { estado: "activo" } : undefined,
+    });
     return figuras.map((f: any) => ({
       ...f,
       producto_id: Number(f.producto_id),
@@ -113,5 +115,17 @@ export const figurasService = {
 
     await prisma.productos.delete({ where: { producto_id: id } });
     return figura;
+  },
+
+  async toggleEstado(id: number) {
+    const figura = await prisma.productos.findUnique({ where: { producto_id: id } });
+    if (!figura) return null;
+
+    const nuevoEstado = figura.estado === "activo" ? "inactivo" : "activo";
+    const actualizado = await prisma.productos.update({
+      where: { producto_id: id },
+      data: { estado: nuevoEstado, updated_at: new Date() },
+    });
+    return { ...actualizado, producto_id: Number(actualizado.producto_id) };
   },
 };

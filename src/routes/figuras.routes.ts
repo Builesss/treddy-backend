@@ -2,10 +2,12 @@ import { Router } from "express";
 import passport from "../config/passport";
 import {
   getFiguras,
+  getFigurasAdmin,
   getFiguraById,
   createFigura,
   updateFigura,
-  deleteFigura
+  deleteFigura,
+  toggleEstadoFigura
 } from "../controllers/figuras.controller";
 
 const router = Router();
@@ -203,5 +205,41 @@ router.put("/:id", passport.authenticate("jwt", { session: false }), updateFigur
  *         description: Error al eliminar la figura
  */
 router.delete("/:id", passport.authenticate("jwt", { session: false }), deleteFigura);
+
+/**
+ * @swagger
+ * /api/figuras/admin/all:
+ *   get:
+ *     summary: Obtener todas las figuras (admin, incluye inactivos)
+ *     tags: [Figuras]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista completa de figuras
+ */
+router.get("/admin/all", passport.authenticate("jwt", { session: false }), getFigurasAdmin);
+
+/**
+ * @swagger
+ * /api/figuras/{id}/toggle-estado:
+ *   patch:
+ *     summary: Activar o desactivar un producto
+ *     tags: [Figuras]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Producto actualizado
+ *       404:
+ *         description: Figura no encontrada
+ */
+router.patch("/:id/toggle-estado", passport.authenticate("jwt", { session: false }), toggleEstadoFigura);
 
 export default router;
