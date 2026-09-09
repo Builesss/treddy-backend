@@ -20,6 +20,7 @@ export const getResenasByProducto = async (req: Request, res: Response): Promise
 
     const result = resenas.map((r: any) => ({
       resena_id: r.resena_id.toString(),
+      usuario_id: Number(r.usuario_id),
       rating: r.rating,
       comentario: r.comentario,
       fecha: r.created_at.toISOString().split("T")[0],
