@@ -70,7 +70,6 @@ export const registerUser = async (data: {
   } catch (spbError: any) {
     console.error(`⚠️  Error al iniciar sync SPB (sin impacto en Supabase):`, spbError.message);
   }
-  // ────────────────────────────────────────────────────────────────────────────
 
   return {
     ...newUser,
