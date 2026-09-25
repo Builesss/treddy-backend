@@ -49,6 +49,28 @@ export const registerUser = async (data: {
     .then(() => console.log(`✅ Email de verificación enviado a: ${newUser.email}`))
     .catch((emailError) => console.error(`❌ Error al enviar email de verificación a ${newUser.email}:`, emailError));
 
+  // ── Sincronización con microservicio Spring Boot (MySQL/XAMPP) ──────────────
+  // Fire-and-forget: si el microservicio está apagado, Supabase NO se ve afectado.
+  const spbUrl = process.env.SPB_API_URL;
+  if (spbUrl) {
+    fetch(`${spbUrl}/api/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+      body: JSON.stringify({
+        name: `${data.nombre} ${data.apellido}`,
+        email: data.email,
+        password: hashedPassword, // Ya cifrado con bcrypt
+        role: "USER",
+      }),
+    })
+      .then((r) => console.log(`✅ Usuario sincronizado con SPB (MySQL): ${r.status}`))
+      .catch((e) => console.error(`⚠️  No se pudo sincronizar con SPB (sin impacto):`, e.message));
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   return {
     ...newUser,
     usuario_id: Number(newUser.usuario_id),
